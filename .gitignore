@@ -62,18 +62,17 @@ coverage.xml
 .dmypy.json
 dmypy.json
 
-# VS Code
+# IDEs / Editors
 .vscode/
-
-# PyCharm
 .idea/
 
-# Local files
+# Local files / temp / session
 *.log
 *.sqlite3
 *.db
+_IGNORE_session
+_IGNORE*
 
 # OS-specific
 .DS_Store
 Thumbs.db
-
