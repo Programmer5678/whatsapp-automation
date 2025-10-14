@@ -1,10 +1,15 @@
-from evolution_framework import send_messages_to_group
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from apscheduler.schedulers.background import BackgroundScheduler
+from timezone import TIMEZONE
+from send_stuff_to_group import send_messages_to_group
 
-mavdak_group_id = "120363422345335152@g.us"
-
-messages = [
-
-f"""
+def send_mavdak_end_messages(mavdak_group_id: str):
+    """
+    Sends final mavdak messages to the specified WhatsApp group.
+    """
+    messages = [
+        f"""
 עליכם להיות זמינים לשיחת פתיחה החל מהשעה 9:00 — אך ייתכן והקישור יישלח עד השעה 10:00.
 כשהקישור יתפרסם, נעלה אותו כאן. אין צורך לשלוח הודעות בנושא.
 
@@ -12,30 +17,60 @@ f"""
 https://keinan-sheffy.com/kst2/exam/login
 
 זמן פתיחת המבחן המשוער הוא סביב השעה 10:00, אך יתכן ותוכלו להיכנס גם מוקדם יותר.
-"""
-,
-
-f"""במקרים של תקלה טכנית יש לפנות ל:
+""",
+        f"""
+במקרים של תקלה טכנית יש לפנות ל:
 035630594
 +972 52-735-0191
 
-מי שיש לו תקלה אחרת לשלוח בפרומט הבא:
+מי שיש לו תקלה אחרת לשלוח בפורמט הבא:
 
- בעיה במבחן המבד"ק 
- שם מלא:
-מספר זהות:
- מייל:
-פלאפון:
-פירוט התקלה:
+בעיה במבחן המבד"ק  
+שם מלא:  
+מספר זהות:  
+מייל:  
+פלאפון:  
+פירוט התקלה:  
 
 כל הפניות מועברות למדור מבדק. מי שהפנייה שלו לא קיבלה מענה לאחר 45 דקות מוזמן לשלוח הודעה בווטסאפ למספר זה - אחרת נתעלם.
-
 """,
-
-"""
+        """
 קראו שוב את ההנחיות ואת ההודעות מלעיל ושיהיה בהצלחה לכולם!
 """
+    ]
 
-]
+    send_messages_to_group(messages, mavdak_group_id)
+    print(f"Messages sent to group {mavdak_group_id}")
 
-send_messages_to_group(messages, mavdak_group_id)
+
+
+
+def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler):
+    """
+    Schedule the sending of mavdak end messages at the given time,
+    then shut down the scheduler immediately after.
+    """
+
+    # sched.add_job(
+    #     send_mavdak_end_messages,   # the callable to run
+    #     run_date=when_to_send,      # when it should run
+    #     args=[mavdak_group_id],     # positional arguments for that callable
+    #     id=f"mavdak_end_{mavdak_group_id}"
+    # )
+    
+    # DEBUGG
+    sched.add_job(
+        send_mavdak_end_messages,   # the callable to run
+        run_date=datetime.now(ZoneInfo(TIMEZONE)),               # run immediately
+        args=[mavdak_group_id],     # positional arguments for that callable
+        id=f"mavdak_end_{mavdak_group_id}"
+    )
+    
+    print(f"Scheduled messages for {when_to_send}")
+
+
+# Example usage:
+# if __name__ == "__main__":
+#     mavdak_group_id = "120363422345335152@g.us"
+#     when_to_send = datetime(2025, 10, 7, 9, 0, tzinfo=ZoneInfo("Asia/Jerusalem"))
+#     mavdak_end(mavdak_group_id, when_to_send)
