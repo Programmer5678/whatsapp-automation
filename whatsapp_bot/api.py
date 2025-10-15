@@ -5,10 +5,11 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
-from models import MavdakRequestModel
+from models import MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import setup_scheduler
+from raf0 import raf0
 
 
 
@@ -23,16 +24,6 @@ def example_endpoint():
     validate_whatsapp_connection()
     return {"message": "Hello, World!"}
 
-# @app.get("/two")
-# def another_endpoint():
-    
-#     time_str = str( datetime.now().strftime("%Y-%m-%d %H:%M:%S") )
-    
-#     # scheduler.add_job(print_hello, trigger=IntervalTrigger(seconds=5), args=[f"from /two endpoint time {time_str}"], id="job2", replace_existing=True)
-    
-#     scheduler.get_job("job2").modify(  args = [f"This should take precedence. from /two endpoint time {time_str}"]  )
-    
-#     return {"message": "This is another endpoint."}
 
 
 @app.get("/is_connected")
@@ -111,7 +102,16 @@ def create_mavdak(payload: MavdakRequestModel):
 
     return {}
 
+# Minimal API endpoint
+@app.post("raf0", status_code=status.HTTP_201_CREATED)
+def create_raf0(req: Raf0RequestModel):
     
+    # Validate WhatsApp connection 
+    validate_whatsapp_connection()
+    
+    raf0(req.raf0_date)
+    
+    return {}
     
 @app.on_event("shutdown")
 def shutdown_event():

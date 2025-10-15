@@ -14,3 +14,12 @@ class MavdakRequestModel(BaseModel):
         min_items=1
     )
 
+
+# Request model
+class Raf0RequestModel(BaseModel):
+    date: date  # user provides the date in YYYY-MM-DD format
+    
+    group_participants: List[constr(pattern=r'^972\d{9}$')] = Field(
+        ...,  # required
+        min_items=1
+    )

@@ -34,7 +34,7 @@ from models import MavdakRequestModel
 
 
 
-def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler) -> str:
+def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : str) -> str:
     
     """
     Create a WhatsApp group for the mavdak and send initial messages.
@@ -110,7 +110,7 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler) -> str:
         media=[],
         deadline=req.deadline_mavdak_list,  # fixed field name
         sched=sched,
-        dir=f"mavdaks/{req.base_date}"      # use req.base_date instead of mavdak_date
+        dir=dir     # use req.base_date instead of mavdak_date
     )
 
     mavdak_group_id = create_group_and_invite(mavdak_group)

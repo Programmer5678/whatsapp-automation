@@ -45,7 +45,7 @@ https://keinan-sheffy.com/kst2/exam/login
 
 
 
-def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler):
+def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler, dir : str) -> None:
     """
     Schedule the sending of mavdak end messages at the given time,
     then shut down the scheduler immediately after.
@@ -63,7 +63,7 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
         send_mavdak_end_messages,   # the callable to run
         run_date=datetime.now(ZoneInfo(TIMEZONE)),               # run immediately
         args=[mavdak_group_id],     # positional arguments for that callable
-        id=f"mavdak_end_{mavdak_group_id}"
+        id=f"mavdaks/{dir}/mavdak_end"
     )
     
     print(f"Scheduled messages for {when_to_send}")
