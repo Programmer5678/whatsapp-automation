@@ -107,14 +107,14 @@ def schedule_deadline_day_job(job_info: JobInfo, deadline: datetime):
         timezone=ZoneInfo(TIMEZONE),
     )
     
-    # DEBUG
-    # Debug trigger: every 2 minutes
-    trigger = CronTrigger(
-        minute='*/2',  # every 2 minutes
-        start_date=datetime.now(ZoneInfo(TIMEZONE)),
-        end_date=deadline,
-        timezone=ZoneInfo(TIMEZONE),
-    )
+    # # DEBUG
+    # # Debug trigger: every 2 minutes
+    # trigger = CronTrigger(
+    #     minute='*/2',  # every 2 minutes
+    #     start_date=datetime.now(ZoneInfo(TIMEZONE)),
+    #     end_date=deadline,
+    #     timezone=ZoneInfo(TIMEZONE),
+    # )
 
 
     # print for debugging

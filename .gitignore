@@ -76,3 +76,5 @@ _IGNORE*
 # OS-specific
 .DS_Store
 Thumbs.db
+*pycache*
+__pycache__
