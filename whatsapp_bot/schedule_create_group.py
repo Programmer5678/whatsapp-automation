@@ -147,7 +147,7 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
 
 
 
-def job(req: WhatsappGroupCreate, group_id: str, media, messages):
+def job(req: WhatsappGroupCreate, group_id: str):
     
     handle_failed_adds(req, group_id)
     send_stuff2(req, group_id)

@@ -1,9 +1,10 @@
 from zoneinfo import ZoneInfo
-from evolution_framework import create_group_and_invite, WhatsappGroupCreate
 from datetime import datetime
 from timezone import TIMEZONE
 from apscheduler.schedulers.background import BackgroundScheduler
 from models import MavdakRequestModel
+from classes import WhatsappGroupCreate
+from schedule_create_group import create_group_and_invite
 
 
 # @dataclass
