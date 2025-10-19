@@ -32,9 +32,6 @@ from schedule_create_group import create_group_and_invite
 #         sched = sched, 
 #     )
 
-
-
-
 def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : str) -> str:
     
     """

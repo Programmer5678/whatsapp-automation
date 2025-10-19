@@ -37,5 +37,4 @@ def send_stuff(media , messages, group_id):
     send_medias_to_group(media, group_id)
     send_messages_to_group(messages, group_id)
     
-def send_stuff2(req: WhatsappGroupCreate, group_id: str):
-    send_stuff(req.media , req.messages, group_id)
+

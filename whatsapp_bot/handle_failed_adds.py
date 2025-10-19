@@ -20,10 +20,18 @@ def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg
             }
         )
 
-# --- STEP 3,4,5 COMBINED (now accepts WhatsappGroupCreate) ---
-def handle_failed_adds(req: WhatsappGroupCreate, group_id: str) -> None:
+
+
+def handle_failed_adds(participants: list[str], invite_msg_title: str, group_id: str) -> None:
+    """
+    Handle failed participant additions and send them an invite link.
+    """
     actual_members = set(get_group_member_ids(group_id))
-    failed_to_add = compute_failed_to_add(req.participants, actual_members)
+    failed_to_add = compute_failed_to_add(participants, actual_members)
+
     if failed_to_add:
         invite_link = get_group_invite_link(group_id)
-        send_invite_to_failed(failed_to_add, invite_link, req.invite_msg_title)
+        send_invite_to_failed(failed_to_add, invite_link, invite_msg_title)
+
+    
+    

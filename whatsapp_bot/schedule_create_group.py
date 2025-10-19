@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
-from send_stuff_to_group import send_stuff, send_stuff2
+from send_stuff_to_group import send_stuff
 from classes import JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import evo_request
@@ -68,6 +68,15 @@ def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
         end_date=end_of_day_before_deadline,
         timezone=ZoneInfo(TIMEZONE),
     )
+
+    # # DEBUG
+    # trigger = CronTrigger(
+    #     minute='*/2',  # every 2 minutes
+    #     start_date=datetime.now(ZoneInfo(TIMEZONE)),
+    #     end_date=end_of_day_before_deadline,
+    #     timezone=ZoneInfo(TIMEZONE),
+    # )
+
 
     # print for debugging
     pretty_print_trigger(trigger)
@@ -147,10 +156,11 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
 
 
 
-def job(req: WhatsappGroupCreate, group_id: str):
+def job_function(participants: list[str], invite_msg_title: str, media, messages, group_id: str):
     
-    handle_failed_adds(req, group_id)
-    send_stuff2(req, group_id)
+    
+    handle_failed_adds( participants, invite_msg_title, group_id)
+    send_stuff(media, messages, group_id)
 
     
 
@@ -164,9 +174,15 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     # Create JobInfo instances for pre-deadline and deadline-day jobs
     job = JobInfo(
         scheduler=req.sched,
-        function=job,
-        params={"req": req, "group_id": group_id},
-        dir = req.dir
+        function=job_function,
+        params={
+            "participants": req.participants,
+            "invite_msg_title": req.invite_msg_title,
+            "media": req.media,
+            "messages": req.messages,
+            "group_id": group_id
+        },
+        dir=req.dir
     )
 
     # Schedule the jobs
@@ -181,7 +197,14 @@ def create_group_and_invite(req: WhatsappGroupCreate, description: str = "") -> 
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")
 
-    send_stuff(req.media , req.messages, group_id)
+
+    job_function(
+        participants=req.participants,
+        invite_msg_title=req.invite_msg_title,
+        media=req.media,
+        messages=req.messages,
+        group_id=group_id
+    )
 
     # input("Press Enter to continue to handle failed adds...")
     
