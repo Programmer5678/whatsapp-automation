@@ -3,8 +3,11 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
-from send_stuff_to_group import send_stuff
+from send_stuff_to_group import send_stuff, send_stuff2
 from classes import JobInfo, WhatsappGroupCreate
+from evolution_framework import _phone_number
+from evo_request import evo_request
+from handle_failed_adds import handle_failed_adds
 
 def pretty_print_trigger(trigger):
     """
@@ -31,31 +34,21 @@ def func():
 
 
 
-# # Start and end dates
-# start_date = datetime(2025, 10, 7, 15, 55, tzinfo=tz)
-# end_date   = datetime(2025, 10, 7, 16, 0, tzinfo=tz)
 
-# # CronTrigger every 2 minutes
-# trigger = CronTrigger(
-#     minute='*/2',        # every 2 minutes
-#     hour='15-16',        # 15:00–16:59, but start/end date will restrict it
-#     start_date=start_date,
-#     end_date=end_date,
-#     timezone=tz,
-# )
+# --- STEP 1: Create group (now accepts WhatsappGroupCreate) ---
+def create_group(req: WhatsappGroupCreate, description: str = "") -> str:
+    """
+    Create group with Evolution API v2.
+    Returns the group ID.
+    """
+    payload = {
+        "subject": req.name,
+        "description": description,
+        "participants": [_phone_number(p) for p in req.participants],
+    }
 
-# pretty_print_trigger(trigger)
-
-# sched.add_job(
-#     func,
-#     trigger=trigger,
-#     id="short_window_2min_job",
-#     coalesce=True,
-#     misfire_grace_time=60,
-# )
-
-
-
+    resp = evo_request("group/create", payload)
+    return resp.get("id")
 
 
 def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
@@ -154,6 +147,12 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
 
 
 
+def job(req: WhatsappGroupCreate, group_id: str, media, messages):
+    
+    handle_failed_adds(req, group_id)
+    send_stuff2(req, group_id)
+
+    
 
 def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     """
@@ -165,11 +164,29 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     # Create JobInfo instances for pre-deadline and deadline-day jobs
     job = JobInfo(
         scheduler=req.sched,
-        function=send_stuff,
-        params={"media": req.media, "messages": req.messages, "group_id": group_id},
+        function=job,
+        params={"req": req, "group_id": group_id},
         dir = req.dir
     )
 
     # Schedule the jobs
     schedule_pre_deadline_job(job, req.deadline)
     schedule_deadline_day_job(job, req.deadline)
+    
+    
+    
+# --- FULL FLOW (now accepts WhatsappGroupCreate) ---
+def create_group_and_invite(req: WhatsappGroupCreate, description: str = "") -> str:
+    group_id = create_group(req, description)
+    if not group_id:
+        raise RuntimeError("Failed to create group or no group ID returned")
+
+    send_stuff(req.media , req.messages, group_id)
+
+    # input("Press Enter to continue to handle failed adds...")
+    
+    # schedule_deadline_jobs( lambda : handle_failed_adds(req, group_id) ,  req.deadline, req.sched )
+    
+    schedule_deadline_jobs( req, group_id )
+    
+    return group_id
