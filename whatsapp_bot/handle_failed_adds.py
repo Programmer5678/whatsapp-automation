@@ -16,9 +16,13 @@ def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg
             "message/sendText",
             {
                 "number": _phone_number(p),
-                "text": message
+                "text": message,
+                "delay" : 50000
             }
         )
+        
+        import time
+        time.sleep(10)
 
 
 

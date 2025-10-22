@@ -4,7 +4,7 @@
 from typing import List
 from evo_request import evo_request
 from classes import WhatsappGroupCreate
-
+import time
 
 def send_messages_to_group(messages : List[str] , group_id: str) -> None:
     for msg in messages:
@@ -12,9 +12,12 @@ def send_messages_to_group(messages : List[str] , group_id: str) -> None:
             "message/sendText",
             {
                 "number": group_id,   # group IDs work here
-                "text": msg
+                "text": msg, 
+                "delay": 50000
             }
         )
+        
+        time.sleep(10)
 
 
 def send_medias_to_group(medias, group_id: str) -> None:
@@ -27,9 +30,12 @@ def send_medias_to_group(medias, group_id: str) -> None:
                 "mimetype": "image/jpeg",
                 "fileName": "image.jpeg",
                 "caption": "",
-                "media" : m
+                "media" : m,
+                "delay" : 50000
             }
         )
+        
+        time.sleep(10)
 
 
 def send_stuff(media , messages, group_id):
