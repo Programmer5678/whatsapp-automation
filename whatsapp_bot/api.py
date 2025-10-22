@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -8,16 +8,36 @@ from fastapi.responses import JSONResponse
 from models import MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
-from setup import setup_scheduler
+from setup import get_cursor_dep, setup_scheduler, create_tables
 from raf0 import raf0
 from typing import Dict, Any, Optional
+from sqlalchemy import text
 
 
-
-
+create_tables()
 scheduler = setup_scheduler()
 
 app = FastAPI()
+
+
+
+@app.get("/test")
+def test():
+    return "works in general"
+
+@app.get("/test_sql_alchemy")
+def test_sql_alchemy( cur = Depends(get_cursor_dep) ):
+    res = cur.execute(text("select 1"))
+    return { "should_be_one" : res.first()[0] }
+
+
+
+
+
+
+
+
+    
 
 
 @app.get("/one")
@@ -122,13 +142,13 @@ def get_all_jobs_in_dir(dir_prefix: str):
 
 # POST endpoint
 @app.post("/mavdak", status_code=status.HTTP_201_CREATED)
-def create_mavdak(payload: MavdakRequestModel):
+def create_mavdak(payload: MavdakRequestModel, cur = Depends(get_cursor_dep)  ):
     
     # Validate WhatsApp connection 
     validate_whatsapp_connection()
     
 
-    mavdak_full_sequence(payload, scheduler)
+    mavdak_full_sequence(payload, scheduler, cur)
 
     return {}
 

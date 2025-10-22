@@ -9,6 +9,10 @@ from evolution_framework import _phone_number
 from evo_request import evo_request
 from handle_failed_adds import handle_failed_adds
 
+from sqlalchemy import text
+
+from setup import get_cursor
+
 def pretty_print_trigger(trigger):
     """
     Nicely print details of a CronTrigger.
@@ -156,14 +160,19 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
 
 
 
-def job_function(participants: list[str], invite_msg_title: str, media, messages, group_id: str):
+def job_function_core( invite_msg_title: str, media, messages, group_id: str, cur):
     
+    participants = cur.execute(text("select participants from group_info where group_id = :gid"), {"gid" : group_id} ).first()[0]
     
-    handle_failed_adds( participants, invite_msg_title, group_id)
+    handle_failed_adds(participants,  invite_msg_title, group_id)
     send_stuff(media, messages, group_id)
+    
+def job_function( invite_msg_title: str, media, messages, group_id: str ):
+    
+    with get_cursor() as cur:
+        job_function_core( invite_msg_title, media, messages, group_id )
 
     
-
 def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     """
     Main function to schedule both pre-deadline and deadline-day jobs.
@@ -176,7 +185,6 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
         scheduler=req.sched,
         function=job_function,
         params={
-            "participants": req.participants,
             "invite_msg_title": req.invite_msg_title,
             "media": req.media,
             "messages": req.messages,
@@ -190,20 +198,26 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     schedule_deadline_day_job(job, req.deadline)
     
     
-    
+
 # --- FULL FLOW (now accepts WhatsappGroupCreate) ---
-def create_group_and_invite(req: WhatsappGroupCreate, description: str = "") -> str:
+def create_group_and_invite(cur, req: WhatsappGroupCreate, description: str = "") -> str:
+    
     group_id = create_group(req, description)
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")
+    
+    
+    cur.execute(
+        text("INSERT INTO group_info (group_id, participants) VALUES (:gid, :parts)"),
+        {"gid": group_id, "parts": req.participants},
+    )
 
-
-    job_function(
-        participants=req.participants,
+    job_function_core(
         invite_msg_title=req.invite_msg_title,
         media=req.media,
         messages=req.messages,
-        group_id=group_id
+        group_id=group_id, 
+        cur=cur
     )
 
     # input("Press Enter to continue to handle failed adds...")

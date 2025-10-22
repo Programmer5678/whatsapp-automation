@@ -32,7 +32,7 @@ from schedule_create_group import create_group_and_invite
 #         sched = sched, 
 #     )
 
-def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : str) -> str:
+def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : str, cur) -> str:
     
     """
     Create a WhatsApp group for the mavdak and send initial messages.
@@ -111,7 +111,7 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : st
         dir=dir     # use req.base_date instead of mavdak_date
     )
 
-    mavdak_group_id = create_group_and_invite(mavdak_group)
+    mavdak_group_id = create_group_and_invite(cur, mavdak_group)
     print(f"Mavdak group ID: {mavdak_group_id}")
     return mavdak_group_id
 

@@ -13,7 +13,7 @@ TIME_TO_SEND_MORNING_MESSAGES = time(8, 45)  # Time to send morning messages on 
 TIME_TO_SEND_MORNING_MESSAGES = time(20, 58)  # Time to send morning messages on the day of mavdak
 
 
-def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler) -> None:
+def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, cur) -> None:
 
     """
     Schedules a full mavdak workflow:
@@ -32,7 +32,7 @@ def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler) -
     dir = f"mavdaks/{req.base_date}" 
 
     # Step 1 — Start the mavdak
-    mavdak_group_id = mavdak_start( req ,sched, dir) 
+    mavdak_group_id = mavdak_start( req ,sched, dir, cur) 
 
 
     when_to_send = datetime.combine(req.base_date, TIME_TO_SEND_MORNING_MESSAGES, tzinfo=ZoneInfo(TIMEZONE))
