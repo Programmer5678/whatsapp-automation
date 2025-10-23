@@ -5,12 +5,14 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
-from models import MavdakRequestModel, Raf0RequestModel
+from models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import setup_scheduler
 from raf0 import raf0
 from typing import Dict, Any, Optional
+
+from hakhana import hakhana
 
 
 
@@ -142,6 +144,17 @@ def create_raf0(req: Raf0RequestModel):
     raf0(req, scheduler)
     
     return {}
+    
+# Minimal API endpoint
+@app.post("/hakhana", status_code=status.HTTP_201_CREATED)
+def create_raf0(req: HakhanaRequestModel):
+    
+    # Validate WhatsApp connection 
+    validate_whatsapp_connection()
+    
+    hakhana(req, scheduler)
+    
+    return {} 
     
 @app.on_event("shutdown")
 def shutdown_event():

@@ -41,14 +41,31 @@ def create_group(req: WhatsappGroupCreate, description: str = "") -> str:
     Create group with Evolution API v2.
     Returns the group ID.
     """
+    
+    first_participants_to_add = req.participants[:50]
+    rest_of_participants = req.participants[50:]
+    
     payload = {
         "subject": req.name,
         "description": description,
-        "participants": [_phone_number(p) for p in req.participants],
+        "participants": [_phone_number(p) for p in first_participants_to_add],
     }
 
-    resp = evo_request("group/create", payload)
-    return resp.get("id")
+    group_id = evo_request("group/create", payload) ["id"]
+        
+    for p in rest_of_participants:
+        payload = {
+            "action" : "add",
+            "participants" : [
+                _phone_number(p)
+            ]
+        }
+        
+        evo_request( "group/updateParticipant", payload, params = { "groupJid" : group_id } )
+        import time
+        time.sleep(5)
+            
+    return group_id
 
 
 def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):

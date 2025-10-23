@@ -17,6 +17,7 @@ def get_group_member_ids(group_id: str) -> List[str]:
     Returns list of participants' phone numbers (as strings).
     Uses Evolution API /group/participants endpoint with query parameter 'groupJid'.
     """
+        
     resp = evo_request(
         "group/participants",
         get=True,
