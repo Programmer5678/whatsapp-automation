@@ -8,6 +8,10 @@ from classes import JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import evo_request
 from handle_failed_adds import handle_failed_adds
+from setup import setup_scheduler
+from domain_errors import EvolutionServerError
+from warnings import warn
+import time
 
 def pretty_print_trigger(trigger):
     """
@@ -36,7 +40,7 @@ def func():
 
 
 # --- STEP 1: Create group (now accepts WhatsappGroupCreate) ---
-def create_group(req: WhatsappGroupCreate, description: str = "") -> str:
+def create_group(req: WhatsappGroupCreate) -> str:
     """
     Create group with Evolution API v2.
     Returns the group ID.
@@ -47,23 +51,41 @@ def create_group(req: WhatsappGroupCreate, description: str = "") -> str:
     
     payload = {
         "subject": req.name,
-        "description": description,
+        "description": "",
         "participants": [_phone_number(p) for p in first_participants_to_add],
     }
+    
 
-    group_id = evo_request("group/create", payload) ["id"]
+    group_id = evo_request("group/create", payload).json() ["id"]
+    
+    # # DEBUG
+    # input("waiting")
+    rest_of_participants = req.participants[1:]
+    
+    
+    def get_batch():
         
-    for p in rest_of_participants:
+        for i in range(0, len(rest_of_participants), 20 ):
+            yield rest_of_participants[ i : i + 20 ]
+    
+        
+    for batch in get_batch():
+        
         payload = {
-            "action" : "add",
-            "participants" : [
-                _phone_number(p)
-            ]
+            "action": "add",
+            "participants": [_phone_number(p) for p in batch]  # no extra brackets
         }
         
-        evo_request( "group/updateParticipant", payload, params = { "groupJid" : group_id } )
-        import time
+        resp = evo_request("group/updateParticipant", payload, params={"groupJid": group_id}) 
+        
+        if resp.status_code == 400:
+            warn(f"⚠️ Warning: Bad request for group {group_id} — {resp.text}")
+        else:
+            resp.raise_for_status()
+
         time.sleep(5)
+        
+    input("Still waiting - debug ")
             
     return group_id
 
@@ -209,8 +231,8 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     
     
 # --- FULL FLOW (now accepts WhatsappGroupCreate) ---
-def create_group_and_invite(req: WhatsappGroupCreate, description: str = "") -> str:
-    group_id = create_group(req, description)
+def create_group_and_invite(req: WhatsappGroupCreate) -> str:
+    group_id = create_group(req)
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")
 
@@ -222,11 +244,29 @@ def create_group_and_invite(req: WhatsappGroupCreate, description: str = "") -> 
         messages=req.messages,
         group_id=group_id
     )
-
-    # input("Press Enter to continue to handle failed adds...")
     
-    # schedule_deadline_jobs( lambda : handle_failed_adds(req, group_id) ,  req.deadline, req.sched )
     
     schedule_deadline_jobs( req, group_id )
     
     return group_id
+
+
+
+
+
+
+# whatsapp_group = WhatsappGroupCreate(
+#     messages=[],
+#     name="alahu",
+#     participants=[
+#                     "972529064417"
+#                   , "972544444444"  
+#                   ],
+#     invite_msg_title="",
+#     media=[],
+#     deadline=datetime(2025, 10, 26),
+#     sched=setup_scheduler(),
+#     dir="/blah"
+# )
+
+# create_group_and_invite( whatsapp_group )

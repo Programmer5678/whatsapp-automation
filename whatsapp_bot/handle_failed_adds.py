@@ -1,8 +1,10 @@
 
 from typing import List
+from warnings import warn
 from evolution_framework import _phone_number, get_group_invite_link, get_group_member_ids
 from evo_request import evo_request
-from classes import WhatsappGroupCreate
+import time
+
 
 def compute_failed_to_add(participants: List[str], actual_members: set) -> List[str]:
     """Return list of normalized participants that were not added to the group."""
@@ -10,20 +12,30 @@ def compute_failed_to_add(participants: List[str], actual_members: set) -> List[
 
 # --- STEP 5: Send invite to failed participants (unchanged signature) ---
 def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
+    
+        
     message = f"{invite_msg_title}\n\n{invite_link}"
     for p in failed_to_add:
-        evo_request(
-            "message/sendText",
-            {
-                "number": _phone_number(p),
-                "text": message,
-                "delay" : 50000
-            }
-        )
         
-        import time
+        resp = evo_request(
+                "message/sendText",
+                {
+                    "number": _phone_number(p),
+                    "text": message,
+                    "delay": 50000
+                }
+            )
+        
+        
+        try: # if resp is error because participant doesnt exist --> just warn and handle
+            assert resp.json()["response"]["message"][0]["exists"] is False
+            warn(f"Participant {p} does not exist — skipping.")
+        except Exception:
+            resp.raise_for_status()
+       
         time.sleep(10)
-
+        
+    
 
 
 def handle_failed_adds(participants: list[str], invite_msg_title: str, group_id: str) -> None:
