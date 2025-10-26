@@ -17,28 +17,30 @@ from sqlalchemy import text
 
 from setup import get_cursor
 
-def pretty_print_trigger(trigger):
-    """
-    Nicely print details of a CronTrigger.
-    """
-    print("=== CronTrigger Info ===")
-    print(f" Timezone:    {trigger.timezone}")
-    print(f" Start date:  {trigger.start_date}")
-    print(f" End date:    {trigger.end_date}")
+import logging
 
-    print(" Schedule:")
+def pretty_print_trigger(trigger, use_logging=True):
+    """
+    Nicely display details of a CronTrigger.
+    Set use_logging=True to use logging.debug() instead of print().
+    """
+    log = logging.debug if use_logging else print
+
+    log("=== CronTrigger Info ===")
+    log(f" Timezone:    {trigger.timezone}")
+    log(f" Start date:  {trigger.start_date}")
+    log(f" End date:    {trigger.end_date}")
+
+    log(" Schedule:")
     for field in trigger.fields:
-        # Combine all expressions into a string
         expr_str = ','.join(str(e) for e in field.expressions)
         if expr_str != "*":
-            print(f"   {field.name:<12} → {expr_str}")
-    print("=========================\n")
+            log(f"   {field.name:<12} → {expr_str}")
+    log("=========================\n")
 
 
-def func():
-    with open("log.txt", "a") as f:
-        f.write(f"Hello, World! at {datetime.now()}\n")
-    print(f"Hello, World! at {datetime.now()}")
+
+
 
 
 

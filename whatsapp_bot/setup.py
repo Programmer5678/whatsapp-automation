@@ -54,3 +54,17 @@ def create_tables():
     # Only create these two tables
     GroupInfo.__table__.create(bind=engine, checkfirst=True)
     Participants.__table__.create(bind=engine, checkfirst=True)
+
+
+
+
+
+
+
+import logging
+
+logging.basicConfig(
+    filename='app.log',        # path to your log file
+    level=logging.DEBUG,       # minimum level to record
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+)
