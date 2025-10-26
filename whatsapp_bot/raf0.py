@@ -17,7 +17,7 @@ def calculate_deadline(req_date: date) -> datetime:
 
 
 # The actual function that does all the group creation
-def raf0(req : Raf0RequestModel, sched: BackgroundScheduler) -> None:
+def raf0(req : Raf0RequestModel, sched: BackgroundScheduler, cur) -> None:
     # Your original RAF0 "juice" code goes here
     group_name = f"רף 0 {req.date}"
     group_invite_msg_title = f"בבקשה להצטרף לקבוצה של הרף 0 שיתקיים ב {req.date}"
@@ -51,7 +51,7 @@ def raf0(req : Raf0RequestModel, sched: BackgroundScheduler) -> None:
     
     
     
-    raf0_group_id = create_group_and_invite(raf0_group)
+    raf0_group_id = create_group_and_invite(cur, raf0_group)
     
     print(f"{group_name} group ID: {raf0_group_id }")
     

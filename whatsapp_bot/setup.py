@@ -33,8 +33,6 @@ engine = create_engine(connection_main)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-from sqlalchemy_models import GroupInfo
-
 
 # Dependency for FastAPI
 @contextmanager
@@ -51,4 +49,8 @@ def get_cursor_dep():
         yield cur
         
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    from sqlalchemy_models import GroupInfo, Participants  # import your models
+
+    # Only create these two tables
+    GroupInfo.__table__.create(bind=engine, checkfirst=True)
+    Participants.__table__.create(bind=engine, checkfirst=True)

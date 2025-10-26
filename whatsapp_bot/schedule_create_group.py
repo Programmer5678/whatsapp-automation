@@ -6,8 +6,12 @@ from timezone import TIMEZONE
 from send_stuff_to_group import send_stuff
 from classes import JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
-from evo_request import evo_request
+from evo_request import evo_request, evo_request_with_retries
 from handle_failed_adds import handle_failed_adds
+from setup import setup_scheduler
+from domain_errors import EvolutionServerError
+from warnings import warn
+import time
 
 from sqlalchemy import text
 
@@ -40,19 +44,54 @@ def func():
 
 
 # --- STEP 1: Create group (now accepts WhatsappGroupCreate) ---
-def create_group(req: WhatsappGroupCreate, description: str = "") -> str:
+def create_group(req: WhatsappGroupCreate) -> str:
     """
     Create group with Evolution API v2.
     Returns the group ID.
     """
+    
+    first_participants_to_add = req.participants[:50]
+    rest_of_participants = req.participants[50:]
+    
     payload = {
         "subject": req.name,
-        "description": description,
-        "participants": [_phone_number(p) for p in req.participants],
+        "description": "",
+        "participants": [_phone_number(p) for p in first_participants_to_add],
     }
+    
 
-    resp = evo_request("group/create", payload)
-    return resp.get("id")
+    group_id = evo_request_with_retries("group/create", payload).json() ["id"]
+    
+    
+    # # DEBUG
+    # input("waiting")
+    rest_of_participants = req.participants[1:]
+    
+
+    def get_batch():
+        
+        for i in range(0, len(rest_of_participants), 20 ):
+            yield rest_of_participants[ i : i + 20 ]
+    
+        
+    for batch in get_batch():
+        
+        payload = {
+            "action": "add",
+            "participants": [_phone_number(p) for p in batch]  # no extra brackets
+        }
+        
+        resp = evo_request_with_retries("group/updateParticipant", payload, params={"groupJid": group_id}) 
+        
+        if resp.status_code == 400:
+            warn(f"⚠️ Warning: Bad request for group {group_id} — {resp.text}")
+        else:
+            resp.raise_for_status()
+
+        time.sleep(5)
+        
+            
+    return group_id
 
 
 def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
@@ -65,21 +104,21 @@ def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
         day_before_deadline, datetime.max.time()
     ).replace(tzinfo=ZoneInfo(TIMEZONE))
 
-    # define the cron trigger
-    trigger = CronTrigger(
-        hour='8-20/4',
-        start_date=datetime.now(ZoneInfo(TIMEZONE)),
-        end_date=end_of_day_before_deadline,
-        timezone=ZoneInfo(TIMEZONE),
-    )
-
-    # # DEBUG
+    # # define the cron trigger
     # trigger = CronTrigger(
-    #     minute='*/2',  # every 2 minutes
-    #     start_date=datetime.now(ZoneInfo(TIMEZONE)),
+    #     hour='8-20/4',
+    #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
     #     end_date=end_of_day_before_deadline,
     #     timezone=ZoneInfo(TIMEZONE),
     # )
+
+    # DEBUG
+    trigger = CronTrigger(
+        minute='*/5',  # every 2 minutes
+        start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
+        end_date=end_of_day_before_deadline,
+        timezone=ZoneInfo(TIMEZONE),
+    )
 
 
     # print for debugging
@@ -117,7 +156,7 @@ def schedule_deadline_day_job(job_info: JobInfo, deadline: datetime):
     # # Debug trigger: every 2 minutes
     # trigger = CronTrigger(
     #     minute='*/2',  # every 2 minutes
-    #     start_date=datetime.now(ZoneInfo(TIMEZONE)),
+    #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
     #     end_date=deadline,
     #     timezone=ZoneInfo(TIMEZONE),
     # )
@@ -162,7 +201,7 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
 
 def job_function_core( invite_msg_title: str, media, messages, group_id: str, cur):
     
-    participants = cur.execute(text("select participants from group_info where group_id = :gid"), {"gid" : group_id} ).first()[0]
+    participants = list(cur.execute(text("select phone_number from participants where group_id = :gid"), {"gid" : group_id} ).fetchall())
     
     handle_failed_adds(participants,  invite_msg_title, group_id)
     send_stuff(media, messages, group_id)
@@ -170,7 +209,7 @@ def job_function_core( invite_msg_title: str, media, messages, group_id: str, cu
 def job_function( invite_msg_title: str, media, messages, group_id: str ):
     
     with get_cursor() as cur:
-        job_function_core( invite_msg_title, media, messages, group_id )
+        job_function_core( invite_msg_title, media, messages, group_id, cur )
 
     
 def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
@@ -200,17 +239,28 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
     
 
 # --- FULL FLOW (now accepts WhatsappGroupCreate) ---
-def create_group_and_invite(cur, req: WhatsappGroupCreate, description: str = "") -> str:
-    
-    group_id = create_group(req, description)
+def create_group_and_invite(cur, req: WhatsappGroupCreate) -> str:
+    group_id = create_group(req)
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")
     
-    
+    # Insert into group_info
     cur.execute(
-        text("INSERT INTO group_info (group_id, participants) VALUES (:gid, :parts)"),
-        {"gid": group_id, "parts": req.participants},
+        text("INSERT INTO group_info (group_id) VALUES (:gid)"),
+        {"gid": group_id},
     )
+
+    # Insert participants
+    for phone_number in req.participants:
+        cur.execute(
+            text(
+                "INSERT INTO participants (phone_number, group_id) VALUES (:phone_number, :gid)"
+            ),
+            {"gid": group_id, "phone_number": phone_number},
+        )
+
+
+
 
     job_function_core(
         invite_msg_title=req.invite_msg_title,
@@ -219,11 +269,31 @@ def create_group_and_invite(cur, req: WhatsappGroupCreate, description: str = ""
         group_id=group_id, 
         cur=cur
     )
-
-    # input("Press Enter to continue to handle failed adds...")
     
-    # schedule_deadline_jobs( lambda : handle_failed_adds(req, group_id) ,  req.deadline, req.sched )
     
     schedule_deadline_jobs( req, group_id )
     
     return group_id
+
+
+
+
+
+
+# whatsapp_group = WhatsappGroupCreate(
+#     messages=["hi"],
+#     name="alahu",
+#     participants=[
+#                     "972529064417"
+#                   , "972544444444"  
+#                   ],
+#     invite_msg_title="",
+#     media=[],
+#     deadline=datetime(2025, 10, 26, tzinfo=ZoneInfo(TIMEZONE)),
+#     sched=setup_scheduler(),
+#     dir="/blah"
+# )
+
+
+# with get_cursor() as cur:
+#     create_group_and_invite( cur, whatsapp_group )

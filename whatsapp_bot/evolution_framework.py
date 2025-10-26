@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict, Any
 
-from evo_request import evo_request
+from evo_request import evo_request, evo_request_with_retries
     
 
 # --- STEP 0: normalize phone numbers ---
@@ -17,18 +17,19 @@ def get_group_member_ids(group_id: str) -> List[str]:
     Returns list of participants' phone numbers (as strings).
     Uses Evolution API /group/participants endpoint with query parameter 'groupJid'.
     """
-    resp = evo_request(
+        
+    resp_json = evo_request_with_retries(
         "group/participants",
         get=True,
         params={"groupJid": group_id}
-    )
+    ).json()
 
-    participants = resp.get("participants", []) or []
+    participants = resp_json.get("participants", []) or []
 
     out = []
     for p in participants:
-        # tolerate a few possible field names returned by different APIs
-        candidate = p.get("phoneNumber") or p.get("id") or p.get("participant") or p.get("user")
+
+        candidate = p.get("phoneNumber")
         if candidate:
             out.append(_phone_number(candidate))
     return out
@@ -37,9 +38,9 @@ def get_group_member_ids(group_id: str) -> List[str]:
 
 # --- STEP 4: Get invite link (unchanged) ---
 def get_group_invite_link(group_id: str) -> str:
-    resp = evo_request(f"group/inviteCode", get=True, params={"groupJid": group_id})
-    # some APIs return inviteUrl / inviteLink / link — try common keys
-    return resp.get("inviteUrl") or resp.get("inviteLink") or resp.get("link")
+    resp_json = evo_request_with_retries(f"group/inviteCode", get=True, params={"groupJid": group_id}).json()
+
+    return resp_json.get("inviteUrl") 
 
 
 

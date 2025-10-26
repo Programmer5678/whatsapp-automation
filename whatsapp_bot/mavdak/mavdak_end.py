@@ -61,7 +61,7 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
     # DEBUGG
     sched.add_job(
         send_mavdak_end_messages,   # the callable to run
-        run_date=datetime.now(ZoneInfo(TIMEZONE)),               # run immediately
+        run_date=when_to_send,               
         args=[mavdak_group_id],     # positional arguments for that callable
         id=f"mavdaks/{dir}/mavdak_end"
     )

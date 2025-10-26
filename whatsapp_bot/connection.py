@@ -7,9 +7,9 @@ def is_whatsapp_connected() -> bool:
     """
     
     # Replace 'whatsapp/status' with the actual endpoint method for checking WhatsApp
-    response = evo_request(method="instance/connectionState", get=True)
+    response_json = evo_request(method="instance/connectionState", get=True).json()
         
-    instance_info = response.get("instance", {})
+    instance_info = response_json.get("instance", {})
     state = instance_info.get("state", "").lower()
         
     if state == "open":

@@ -23,3 +23,23 @@ class Raf0RequestModel(BaseModel):
         ...,  # required
         min_items=1
     )
+    
+# Request model for חֲכָנָה
+class HakhanaRequestModel(BaseModel):
+    date: date  # YYYY-MM-DD
+    # deadline is provided directly by the caller (already a timezone-aware datetime if needed)
+    deadline: datetime
+
+    group_participants: List[constr(pattern=r'^972\d{9}$')] = Field(
+        ...,  # required
+        min_items=1
+    )
+    
+    
+
+class ChangeParticipantsRequestModel(BaseModel):
+    gid: str  # any string for now
+    participants: List[constr(pattern=r'^972\d{9}$')] = Field(
+        ...,        # required
+        min_items=1  # at least one participant
+    )

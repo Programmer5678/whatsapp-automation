@@ -26,6 +26,11 @@ class EvolutionServerError(DomainError):
     def __init__(self, message: str = "Evolution API returned an error", request: any = None, response: any = None):
         super().__init__(message, request=request, response=response)
 
+class ConnectionDomainError(EvolutionServerError):
+    """Raised when there is a connection-level failure with Evolution API."""
+    def __init__(self, message: str = "Connection error with Evolution API", request: any = None, response: any = None):
+        super().__init__(message=message, request=request, response=response)
+
 
 class JSONParseError(DomainError):
     """Raised when an external API returns a response that cannot be parsed as JSON."""
