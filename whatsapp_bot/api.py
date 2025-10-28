@@ -5,7 +5,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
-from models import ChangeParticipantsRequestModel, HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
+from models import ChangeParticipantsRequestModel, GetParticipantsRequestModel, HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import get_cursor_dep, setup_scheduler, create_tables
@@ -15,6 +15,8 @@ from sqlalchemy import text
 
 from hakhana import hakhana
 from dynamic_group_changes import change_participants
+from evo_request import evo_request_with_retries
+from evolution_framework import _phone_number
 
 
 create_tables()
@@ -135,6 +137,18 @@ def get_all_jobs_in_dir(dir_prefix: str):
     # Delegate to shared helper
     return get_jobs_in_dir(dir_prefix)
 
+
+@app.post("/get_participants")
+def get_participants(req : GetParticipantsRequestModel):
+    
+    all_participants_resp = evo_request_with_retries(method = "/group/participants", get=True, params={"groupJid" : req.gid})
+    all_numbers_id = [ p["phoneNumber"] for p in all_participants_resp.json()["participants"] ]
+    all_numbers  = [ _phone_number(p) for p in all_numbers_id ]
+    
+    all_numbers_without_excluded = [ n for n in all_numbers if not n in req.participants_to_exclude]
+    excluded_that_not_in_group = [ n for n in req.participants_to_exclude if not n in all_numbers]
+    
+    return { "all_numbers_without_excluded" : all_numbers_without_excluded, "excluded_that_not_in_group" : excluded_that_not_in_group, "all_numbers" : all_numbers}
     
     
     

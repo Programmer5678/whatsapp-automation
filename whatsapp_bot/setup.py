@@ -58,9 +58,6 @@ def create_tables():
 
 
 
-
-
-
 import logging
 
 logging.basicConfig(

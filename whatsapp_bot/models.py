@@ -43,3 +43,9 @@ class ChangeParticipantsRequestModel(BaseModel):
         ...,        # required
         min_items=1  # at least one participant
     )
+    
+class GetParticipantsRequestModel(BaseModel):
+    gid : str
+    participants_to_exclude: List[constr(pattern=r'^972\d{9}$')] = Field(
+        ...,        # required
+    )
