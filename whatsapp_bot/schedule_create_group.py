@@ -1,3 +1,4 @@
+from typing import List
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -96,86 +97,86 @@ def create_group(req: WhatsappGroupCreate) -> str:
     return group_id
 
 
-def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
-    """
-    Schedule pre-deadline job: every 4h from 08:00–20:00 until the day before deadline
-    """
-    # compute the day before the deadline
-    day_before_deadline = (deadline - timedelta(days=1)).date()
-    end_of_day_before_deadline = datetime.combine(
-        day_before_deadline, datetime.max.time()
-    ).replace(tzinfo=ZoneInfo(TIMEZONE))
+# def schedule_pre_deadline_job(job_info: JobInfo, deadline: datetime):
+#     """
+#     Schedule pre-deadline job: every 4h from 08:00–20:00 until the day before deadline
+#     """
+#     # compute the day before the deadline
+#     day_before_deadline = (deadline - timedelta(days=1)).date()
+#     end_of_day_before_deadline = datetime.combine(
+#         day_before_deadline, datetime.max.time()
+#     ).replace(tzinfo=ZoneInfo(TIMEZONE))
 
-    # # define the cron trigger
-    # trigger = CronTrigger(
-    #     hour='8-20/4',
-    #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
-    #     end_date=end_of_day_before_deadline,
-    #     timezone=ZoneInfo(TIMEZONE),
-    # )
+#     # # define the cron trigger
+#     # trigger = CronTrigger(
+#     #     hour='8-20/4',
+#     #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
+#     #     end_date=end_of_day_before_deadline,
+#     #     timezone=ZoneInfo(TIMEZONE),
+#     # )
 
-    # DEBUG
-    trigger = CronTrigger(
-        minute='*/5',  # every 2 minutes
-        start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
-        end_date=end_of_day_before_deadline,
-        timezone=ZoneInfo(TIMEZONE),
-    )
-
-
-    # print for debugging
-    pretty_print_trigger(trigger)
-
-    # schedule the job
-    job_info.scheduler.add_job(
-        job_info.function,
-        trigger=trigger,
-        id=f"{job_info.dir}/pre_deadline_job",
-        kwargs=job_info.params,
-        coalesce=True,
-        misfire_grace_time=600,
-    )
+#     # DEBUG
+#     trigger = CronTrigger(
+#         minute='*/5',  # every 2 minutes
+#         start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
+#         end_date=end_of_day_before_deadline,
+#         timezone=ZoneInfo(TIMEZONE),
+#     )
 
 
-def schedule_deadline_day_job(job_info: JobInfo, deadline: datetime):
-    """
-    Schedule deadline day job: every 2h from 08:00–20:00 on the deadline day
-    """
-    # compute start of deadline day
-    start_of_deadline_day = datetime.combine(deadline.date(), datetime.min.time()).replace(
-        tzinfo=ZoneInfo(TIMEZONE)
-    )
+#     # print for debugging
+#     pretty_print_trigger(trigger)
 
-    # define the cron trigger
-    trigger = CronTrigger(
-        hour='8-20/2',
-        start_date=start_of_deadline_day,
-        end_date=deadline,
-        timezone=ZoneInfo(TIMEZONE),
-    )
+#     # schedule the job
+#     job_info.scheduler.add_job(
+#         job_info.function,
+#         trigger=trigger,
+#         id=f"{job_info.dir}/pre_deadline_job",
+#         kwargs=job_info.params,
+#         coalesce=True,
+#         misfire_grace_time=600,
+#     )
+
+
+# def schedule_deadline_day_job(job_info: JobInfo, deadline: datetime):
+#     """
+#     Schedule deadline day job: every 2h from 08:00–20:00 on the deadline day
+#     """
+#     # compute start of deadline day
+#     start_of_deadline_day = datetime.combine(deadline.date(), datetime.min.time()).replace(
+#         tzinfo=ZoneInfo(TIMEZONE)
+#     )
+
+#     # define the cron trigger
+#     trigger = CronTrigger(
+#         hour='8-20/2',
+#         start_date=start_of_deadline_day,
+#         end_date=deadline,
+#         timezone=ZoneInfo(TIMEZONE),
+#     )
     
-    # # DEBUG
-    # # Debug trigger: every 2 minutes
-    # trigger = CronTrigger(
-    #     minute='*/2',  # every 2 minutes
-    #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
-    #     end_date=deadline,
-    #     timezone=ZoneInfo(TIMEZONE),
-    # )
+#     # # DEBUG
+#     # # Debug trigger: every 2 minutes
+#     # trigger = CronTrigger(
+#     #     minute='*/2',  # every 2 minutes
+#     #     start_date=datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5),
+#     #     end_date=deadline,
+#     #     timezone=ZoneInfo(TIMEZONE),
+#     # )
 
 
-    # print for debugging
-    pretty_print_trigger(trigger)
+#     # print for debugging
+#     pretty_print_trigger(trigger)
 
-    # schedule the job
-    job_info.scheduler.add_job(
-        job_info.function,
-        trigger=trigger,
-        id=f"{job_info.dir}/deadline_day_job",
-        kwargs=job_info.params,
-        coalesce=True,
-        misfire_grace_time=600,
-    )
+#     # schedule the job
+#     job_info.scheduler.add_job(
+#         job_info.function,
+#         trigger=trigger,
+#         id=f"{job_info.dir}/deadline_day_job",
+#         kwargs=job_info.params,
+#         coalesce=True,
+#         misfire_grace_time=600,
+#     )
 
 def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5):
     """
@@ -213,15 +214,65 @@ def job_function( invite_msg_title: str, media, messages, group_id: str ):
     with get_cursor() as cur:
         job_function_core( invite_msg_title, media, messages, group_id, cur )
 
-    
-def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
-    """
-    Main function to schedule both pre-deadline and deadline-day jobs.
-    """
-    validate_deadline(req.deadline)  # check before scheduling
 
 
-    # Create JobInfo instances for pre-deadline and deadline-day jobs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def compute_spread_times(start: datetime, deadline: datetime, runs: int = 3) -> List[datetime]:
+    """
+    Compute `runs` datetimes evenly spaced between `start` (inclusive) and `deadline` (exclusive).
+    """
+    interval = (deadline - start) / runs
+    return [(start + interval * i).astimezone(start.tzinfo) for i in range(runs)]
+
+
+def schedule_times_as_date_jobs(job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
+    """
+    Schedule given datetimes as one-shot 'date' jobs.
+    """
+    for idx, run_time in enumerate(run_times):
+        job_id = f"{job_info.dir}/{base_id}_{idx}"
+        print(f"Scheduling {job_id} -> {run_time.isoformat()}")
+
+        job_info.scheduler.add_job(
+            job_info.function,
+            "date",
+            run_date=run_time,
+            id=job_id,
+            kwargs=job_info.params,
+            coalesce=True,
+            misfire_grace_time=600,
+        )
+
+
+def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str, runs: int = 3) -> None:
+    """
+    Schedule `runs` jobs evenly between start (now + 5 min) and the deadline.
+    """
+    validate_deadline(req.deadline)
+
+    start = datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5)
+    deadline = req.deadline.astimezone(ZoneInfo(TIMEZONE))
+
     job = JobInfo(
         scheduler=req.sched,
         function=job_function,
@@ -229,14 +280,89 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
             "invite_msg_title": req.invite_msg_title,
             "media": req.media,
             "messages": req.messages,
-            "group_id": group_id
+            "group_id": group_id,
         },
-        dir=req.dir
+        dir=req.dir,
     )
 
-    # Schedule the jobs
-    schedule_pre_deadline_job(job, req.deadline)
-    schedule_deadline_day_job(job, req.deadline)
+    run_times = compute_spread_times(start, deadline, runs)
+    schedule_times_as_date_jobs(job, run_times, base_id="pre_deadline_job")
+
+
+def test_compute_spread_times():
+    # --- Example test with timezone ---
+    start = datetime(2026, 10, 30, 15, 0, tzinfo=ZoneInfo(TIMEZONE))
+    deadline = datetime(2026, 10, 30, 18, 0, tzinfo=ZoneInfo(TIMEZONE))
+    runs = 3
+
+    times = compute_spread_times(start, deadline, runs)
+
+    print("Scheduled times:")
+    for i, t in enumerate(times, 1):
+        print(f"{i}. {t.strftime('%H:%M')}")
+
+    # --- Assertions ---
+    expected_hours = [15, 16, 17]  # the whole hours we expect
+    assert len(times) == runs, f"Expected {runs} times, got {len(times)}"
+    for t, expected_hour in zip(times, expected_hours):
+        assert t.hour == expected_hour, f"Expected hour {expected_hour}, got {t.hour}"
+        assert t.minute == 0, f"Expected minute 0, got {t.minute}"
+
+test_compute_spread_times()        
+    
+
+
+
+
+    
+# def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str) -> None:
+#     """
+#     Main function to schedule both pre-deadline and deadline-day jobs.
+#     """
+#     validate_deadline(req.deadline)  # check before scheduling
+
+
+#     # Create JobInfo instances for pre-deadline and deadline-day jobs
+#     job = JobInfo(
+#         scheduler=req.sched,
+#         function=job_function,
+#         params={
+#             "invite_msg_title": req.invite_msg_title,
+#             "media": req.media,
+#             "messages": req.messages,
+#             "group_id": group_id
+#         },
+#         dir=req.dir
+#     )
+
+#     # Schedule the jobs
+#     schedule_pre_deadline_job(job, req.deadline)
+#     schedule_deadline_day_job(job, req.deadline)
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     
 
