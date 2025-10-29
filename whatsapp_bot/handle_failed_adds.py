@@ -10,6 +10,26 @@ def compute_failed_to_add(participants: List[str], actual_members: set) -> List[
     """Return list of normalized participants that were not added to the group."""
     return [_phone_number(p) for p in participants if _phone_number(p) not in actual_members]
 
+
+
+
+
+# def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
+#     """
+#     Send invite messages to participants who failed to be added previously.
+#     Uses MassMessenger class internally.
+#     """
+#     message = f"{invite_msg_title}\n\n{invite_link}"
+    
+#     messenger = MassMessenger(
+#         numbers=failed_to_add,
+#         message=message
+#         # No callbacks passed, so behaves like original function
+#     )
+    
+#     messenger.send_all()
+
+
 # --- STEP 5: Send invite to failed participants (unchanged signature) ---
 def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
     

@@ -5,7 +5,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
-from models import ChangeParticipantsRequestModel, GetParticipantsRequestModel, HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
+from models import ChangeParticipantsRequestModel, GetParticipantsRequestModel, HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel, SendMassMessagesRequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import get_cursor_dep, setup_scheduler, create_tables
@@ -17,6 +17,7 @@ from hakhana import hakhana
 from dynamic_group_changes import change_participants
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
+from mass_messanger import MassMessenger
 
 
 create_tables()
@@ -154,6 +155,68 @@ def get_participants(req : GetParticipantsRequestModel):
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+@app.post("/sendMassMessages", status_code=status.HTTP_201_CREATED)
+def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_cursor_dep)):
+
+    validate_whatsapp_connection()
+
+    # --- Validate uniqueness of phone numbers ---
+    phones = [p.phone_number for p in payload.participants]
+    if len(phones) != len(set(phones)):
+        raise ValueError("Duplicate phone numbers detected in participants.")
+
+    # --- Insert participants into mass_messages table ---
+    for part in payload.participants:
+        cur.execute(
+            text("INSERT INTO mass_messages (id, phone_number, success) VALUES (:id, :phone_number, :success)"),
+            {"id": part.id, "phone_number": part.phone_number, "success": None}
+        )
+
+    # --- Define callbacks ---
+    def on_success(phone_number: str):
+        cur.execute(
+            text("UPDATE mass_messages SET success = TRUE WHERE phone_number = :phone_number"),
+            {"phone_number": phone_number}
+        )
+        cur.commit()
+
+    def on_failure(phone_number: str):
+        cur.execute(
+            text("UPDATE mass_messages SET success = FALSE WHERE phone_number = :phone_number" ),
+            {"phone_number": phone_number}
+        )
+        cur.commit()
+
+    # --- Create messenger and send messages ---
+    messenger = MassMessenger(
+        numbers=phones,
+        message=payload.message,
+        on_success=on_success,
+        on_failure=on_failure,
+    )
+
+    messenger.send_all()
+    # no return value, status_code=201
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

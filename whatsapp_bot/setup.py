@@ -49,11 +49,12 @@ def get_cursor_dep():
         yield cur
         
 def create_tables():
-    from sqlalchemy_models import GroupInfo, Participants  # import your models
+    from sqlalchemy_models import GroupInfo, Participants, MassMessages  # import your models
 
     # Only create these two tables
     GroupInfo.__table__.create(bind=engine, checkfirst=True)
     Participants.__table__.create(bind=engine, checkfirst=True)
+    MassMessages.__table__.create(bind=engine, checkfirst=True)
 
 
 

@@ -49,3 +49,14 @@ class GetParticipantsRequestModel(BaseModel):
     participants_to_exclude: List[constr(pattern=r'^972\d{9}$')] = Field(
         ...,        # required
     )
+    
+    
+    
+    
+class ParticipantItem(BaseModel):
+    id: str
+    phone_number: str
+
+class SendMassMessagesRequestModel(BaseModel):
+    message: str
+    participants: List[ParticipantItem]

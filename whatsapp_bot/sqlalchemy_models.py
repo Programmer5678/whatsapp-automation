@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer
 from sqlalchemy.dialects.postgresql import ARRAY
 from setup import Base
 
-from sqlalchemy import Column, String, ForeignKey, Integer
+from sqlalchemy import Column, String, ForeignKey, Integer, Boolean
 from sqlalchemy.orm import relationship
 
 class GroupInfo(Base):
@@ -23,3 +23,11 @@ class Participants(Base):
 
     # relationship back to group
     group = relationship("GroupInfo", back_populates="participants")
+    
+
+class MassMessages(Base):
+    __tablename__ = "mass_messages"
+
+    id =  Column(String(100), primary_key=True )
+    phone_number = Column(String(100), nullable=False)
+    success = Column(Boolean, nullable=True, default=False)    

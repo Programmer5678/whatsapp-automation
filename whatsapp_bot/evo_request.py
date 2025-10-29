@@ -11,7 +11,7 @@ INSTANCE = "my_instance"                # WhatsApp instance ID
 
 
 
-def request_and_print(method, url, headers=None, params=None, data=None, json=None, use_logging=True):
+def request_and_print(method, url, headers=None, params=None, data=None, json=None, use_logging=False):
     """
     Send an HTTP request and log or print the full request/response details.
 
