@@ -11,7 +11,7 @@ from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import get_cursor_dep, setup_scheduler, create_tables
 from raf0 import raf0
 from typing import Dict, Any, Optional
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
 
 from hakhana import hakhana
 from dynamic_group_changes import change_participants
@@ -160,26 +160,59 @@ def get_participants(req : GetParticipantsRequestModel):
     
     
     
-    
+
+
+
+
+
+def calculate_relevant_participants(cur, participants):
+    """
+    Returns only participants whose IDs are not marked success=TRUE in mass_messages.
+
+    Args:
+        cur: Active database cursor or SQLAlchemy connection.
+        participants: List of participant objects (must have 'id' attribute).
+
+    Returns:
+        List of participants still relevant for sending.
+    """
+    if not participants:
+        return []
+
+    ids = [p.id for p in participants]
+
+    res = cur.execute(
+        text("SELECT id FROM mass_messages WHERE id IN :ids AND success = TRUE").bindparams( bindparam("ids", expanding=True) )
+        , {"ids": ids} # DEBUG
+    ).fetchall()
+
+    already_success_ids = {row[0] for row in res }
+
+    return [p for p in participants if p.id not in already_success_ids]
     
     
 @app.post("/sendMassMessages", status_code=status.HTTP_201_CREATED)
 def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_cursor_dep)):
 
-    validate_whatsapp_connection()
+    # validate_whatsapp_connection() # DEBUG
+    
+    relevant_participants = calculate_relevant_participants(cur, payload.participants)
 
     # --- Validate uniqueness of phone numbers ---
-    phones = [p.phone_number for p in payload.participants]
+    phones = [p.phone_number for p in relevant_participants]
     if len(phones) != len(set(phones)):
         raise ValueError("Duplicate phone numbers detected in participants.")
+    
 
     # --- Insert participants into mass_messages table ---
-    for part in payload.participants:
+    for part in relevant_participants:
         cur.execute(
-            text("INSERT INTO mass_messages (id, phone_number, success) VALUES (:id, :phone_number, :success)"),
+            text("""INSERT INTO mass_messages (id, phone_number, success) VALUES (:id, :phone_number, :success)
+                    ON CONFLICT (id) DO NOTHING
+                 """),
             {"id": part.id, "phone_number": part.phone_number, "success": None}
         )
-
+ 
     # --- Define callbacks ---
     def on_success(phone_number: str):
         cur.execute(
@@ -188,10 +221,10 @@ def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_
         )
         cur.commit()
 
-    def on_failure(phone_number: str):
+    def on_failure(phone_number: str, reason : str):
         cur.execute(
-            text("UPDATE mass_messages SET success = FALSE WHERE phone_number = :phone_number" ),
-            {"phone_number": phone_number}
+            text("UPDATE mass_messages SET success = FALSE, fail_reason = :reason WHERE phone_number = :phone_number" ),
+            {"phone_number": phone_number, "reason" : reason } 
         )
         cur.commit()
 

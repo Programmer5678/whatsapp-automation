@@ -30,4 +30,5 @@ class MassMessages(Base):
 
     id =  Column(String(100), primary_key=True )
     phone_number = Column(String(100), nullable=False)
-    success = Column(Boolean, nullable=True, default=False)    
+    success = Column(Boolean, nullable=True, default=False)   
+    fail_reason = Column(String(255))

@@ -5,13 +5,17 @@ from warnings import warn
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
 
+from typing import List, Callable, Optional
+import time
+
+
 class MassMessenger:
     def __init__(
         self,
         numbers: List[str],
         message: str,
-        on_success: Callable[[str], None] = None,
-        on_failure: Callable[[str], None] = None,
+        on_success: Optional[Callable[[str], None]] = None,
+        on_failure: Optional[Callable[[str, str], None]] = None,  # now receives (phone, message)
     ):
         """
         Generalized messenger for sending messages to multiple participants.
@@ -19,8 +23,8 @@ class MassMessenger:
         Args:
             numbers: List of participant phone numbers.
             message: Text message to send.
-            on_success: Called after a successful send.
-            on_failure: Called only if participant doesn't exist.
+            on_success: Called after a successful send: on_success(phone).
+            on_failure: Called on failure: on_failure(phone, message).
         """
         self.numbers = numbers
         self.message = message
@@ -29,27 +33,27 @@ class MassMessenger:
 
     def send_all(self):
         for p in self.numbers:
-            resp = evo_request_with_retries(
-                "message/sendText",
-                {
-                    "number": _phone_number(p),
-                    "text": self.message,
-                    "delay": 50000,
-                },
-            )
-
-            try:
-                # participant doesn't exist → warn & call on_failure
-                assert resp.json()["response"]["message"][0]["exists"] is False
-                warn(f"Participant {p} does not exist — skipping.")
-                if self.on_failure:
-                    self.on_failure(p)
-                    
-                
-
-            except Exception:
-                resp.raise_for_status()
             
+            try:
+            
+                resp = evo_request_with_retries(
+                    "message/sendText",
+                    {
+                        "number": _phone_number(p),
+                        "text": self.message,
+                        "delay": 50000,
+                    },
+                )
+                
+                if not resp.ok: 
+                    raise Exception(f"HTTP {resp.status_code}: {resp.text}")
+                
+            except Exception as e:
+                if self.on_failure:
+                    self.on_failure(p, str(e))  
+                    
+                continue
+
             # success path → call on_success
             if self.on_success:
                 self.on_success(p)
