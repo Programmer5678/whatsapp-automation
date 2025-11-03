@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+import logging
 from typing import List
 from zoneinfo import ZoneInfo
 from timezone import TIMEZONE
@@ -73,15 +74,19 @@ def business_seconds_since_oct1(dt: datetime, business_hours: list = BUSINESS_HO
 
     
 
-
-def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_hours: list = BUSINESS_HOURS_DEFAULT) -> datetime:
+def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_hours: list = BUSINESS_HOURS_DEFAULT, use_logging = False) -> datetime:
     """
     Convert business seconds since Oct 1 00:00 back to a datetime.
     """
     current = OCT1
     remaining_seconds = business_seconds
 
-    while remaining_seconds > 0:
+
+    log = logging.debug if use_logging else print
+
+    log(f"Converting business seconds back to date...{ business_seconds }") 
+
+    while remaining_seconds >= 0:
         wd = current.weekday()  # Monday=0
         start_time, end_time = business_hours[wd]
 
@@ -89,11 +94,12 @@ def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_
         end_sec   = end_time.hour * 3600 + end_time.minute * 60 + end_time.second
         business_day_seconds =  end_sec - start_sec
 
-        if remaining_seconds > business_day_seconds:
+        if remaining_seconds >= business_day_seconds:
             
-            # print(f"Date: {current.date()}, Consuming full business day seconds: {business_day_seconds}, Remaining seconds before: {remaining_seconds}")
             # Move to next day
             remaining_seconds -= business_day_seconds
+            log(f"Date: {current.date()}, Consuming full business day seconds: {business_day_seconds}, Remaining seconds before: {remaining_seconds}")
+            
             current += timedelta(days=1)
         else:
             # Add the remaining time inside the current business day
@@ -107,7 +113,11 @@ def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_
                 tzinfo=ZoneInfo(TIMEZONE)
             ) + timedelta(seconds=remaining_seconds)
             
+            log(f"Date: {current.date()}, Consuming remaining seconds: {remaining_seconds}, Result: {result.isoformat()}")
+            
             return result
+        
+    raise Exception("Should not reach here if business_seconds > 0") #DEBUG
 
     
 

@@ -32,3 +32,9 @@ class MassMessages(Base):
     phone_number = Column(String(100), nullable=False)
     success = Column(Boolean, nullable=True, default=False)   
     fail_reason = Column(String(255))
+
+class JobBatch(Base):
+    __tablename__ = "job_batch"
+
+    name = Column(String(100), primary_key=True)
+    description = Column(String(255), nullable=True)
