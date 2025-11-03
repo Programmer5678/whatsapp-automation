@@ -103,8 +103,7 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : st
     mavdak_group = WhatsappGroupCreate(
         name=group_name,
         participants=req.group_participants,
-        # messages=group_messages,
-        messages=[],
+        messages=group_messages,
         invite_msg_title=group_invite_msg_title,
         media=[],
         deadline=req.deadline_mavdak_list,  # fixed field name
