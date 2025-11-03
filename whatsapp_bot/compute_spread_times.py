@@ -18,8 +18,7 @@ BUSINESS_HOURS_DEFAULT = [
     (time(8, 0), time(20, 0)),  # Thursday
     (time(9, 0), time(13, 0)), # Friday
     (time(0, 0), time(0, 0)),  # Saturday
-    # (time(8, 0), time(20, 0)), # Sunday
-    (time(8, 0), time(23, 59)), # DEBUG Sunday
+    (time(8, 0), time(20, 0)), #  Sunday
 ]
 
 

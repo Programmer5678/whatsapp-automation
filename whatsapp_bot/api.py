@@ -183,7 +183,7 @@ def calculate_relevant_participants(cur, participants):
 
     res = cur.execute(
         text("SELECT id FROM mass_messages WHERE id IN :ids AND success = TRUE").bindparams( bindparam("ids", expanding=True) )
-        , {"ids": ids} # DEBUG
+        , {"ids": ids}
     ).fetchall()
 
     already_success_ids = {row[0] for row in res }
@@ -194,7 +194,7 @@ def calculate_relevant_participants(cur, participants):
 @app.post("/sendMassMessages", status_code=status.HTTP_201_CREATED)
 def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_cursor_dep)):
 
-    # validate_whatsapp_connection() # DEBUG
+    validate_whatsapp_connection() 
     
     relevant_participants = calculate_relevant_participants(cur, payload.participants)
 

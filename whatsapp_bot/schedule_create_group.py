@@ -69,11 +69,7 @@ def create_group(req: WhatsappGroupCreate) -> str:
 
     group_id = evo_request_with_retries("group/create", payload).json() ["id"]
     
-    
-    # # DEBUG
-    # input("waiting")
-    rest_of_participants = req.participants[1:]
-    
+ 
 
     def get_batch():
         
@@ -95,7 +91,7 @@ def create_group(req: WhatsappGroupCreate) -> str:
         else:
             resp.raise_for_status()
 
-        time.sleep(5)
+        time.sleep(10)
         
             
     return group_id

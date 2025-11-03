@@ -51,14 +51,6 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
     then shut down the scheduler immediately after.
     """
 
-    # sched.add_job(
-    #     send_mavdak_end_messages,   # the callable to run
-    #     run_date=when_to_send,      # when it should run
-    #     args=[mavdak_group_id],     # positional arguments for that callable
-    #     id=f"mavdak_end_{mavdak_group_id}"
-    # )
-    
-    # DEBUGG
     sched.add_job(
         send_mavdak_end_messages,   # the callable to run
         run_date=when_to_send,               
