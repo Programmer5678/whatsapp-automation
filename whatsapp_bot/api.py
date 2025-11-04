@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -39,11 +40,40 @@ def test_sql_alchemy( cur = Depends(get_cursor_dep) ):
 
 
 
-
-
-
-
+from fastapi import FastAPI, Depends
+from datetime import datetime, timedelta
+from classes import CreateJob
+from timezone import TIMEZONE
     
+def write_helloworld():
+    print("Writing Hello world to helloworld.txt")
+    with open("helloworld.txt", "w") as f:
+        f.write("Hello world")
+    
+@app.post("/schedule_helloworld")
+def schedule_helloworld(cur=Depends(get_cursor_dep)):
+    job_id = "helloworld_job_1"
+    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(minutes=1)
+    description = "Write Hello world to helloworld.txt"
+    batch_id = "example_task_name"  # assume 1 for example
+    
+
+    CreateJob(
+        cur=cur,
+        scheduler=scheduler,
+        id=job_id,
+        func=write_helloworld,
+        params={},
+        run_time=run_date,
+        description=description,
+        batch_id=batch_id,
+    )
+    return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
+
+
+
+
+
 
 
 @app.get("/one")

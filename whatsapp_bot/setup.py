@@ -9,8 +9,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 
 connection_prefix = 'postgresql+psycopg://codya:030103@localhost:5432/'
-connection_apischeduler = connection_prefix + 'lsd'
+
 connection_main = connection_prefix + 'main'
+# connection_apischeduler = connection_prefix + 'lsd'
+connection_apischeduler = connection_main
 
 
 def setup_scheduler():
@@ -49,13 +51,14 @@ def get_cursor_dep():
         yield cur
         
 def create_tables():
-    from sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch  # import your models
+    from sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
 
     # Only create these two tables
     GroupInfo.__table__.create(bind=engine, checkfirst=True)
     Participants.__table__.create(bind=engine, checkfirst=True)
     MassMessages.__table__.create(bind=engine, checkfirst=True)
     JobBatch.__table__.create(bind=engine, checkfirst=True)
+    JobInformation.__table__.create(bind=engine, checkfirst=True)
 
 
 

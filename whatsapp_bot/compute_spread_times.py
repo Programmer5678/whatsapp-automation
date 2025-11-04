@@ -74,7 +74,7 @@ def business_seconds_since_oct1(dt: datetime, business_hours: list = BUSINESS_HO
 
     
 
-def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_hours: list = BUSINESS_HOURS_DEFAULT, use_logging = False) -> datetime:
+def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_hours: list = BUSINESS_HOURS_DEFAULT, use_logging = True) -> datetime:
     """
     Convert business seconds since Oct 1 00:00 back to a datetime.
     """
