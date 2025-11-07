@@ -45,18 +45,47 @@ from datetime import datetime, timedelta
 from classes import CreateJob
 from timezone import TIMEZONE
     
+
+    
 def write_helloworld():
+    
+    
+    print("waiting...")
+    import time
+    time.sleep(10)
+    print("done waiting")
+    
     print("Writing Hello world to helloworld.txt")
     with open("helloworld.txt", "w") as f:
         f.write("Hello world")
+        
+    # raise Exception("Job failed")
+    
+    
+        
+        
+        
+        
+# def add_hooks(func):
+    
+#     def res():
+#         print("Before")
+#         func()
+#         print("After")
+        
+#     return res
+    
+# write_helloworld_with_hooks = add_hooks(write_helloworld)
     
 @app.post("/schedule_helloworld")
 def schedule_helloworld(cur=Depends(get_cursor_dep)):
     job_id = "helloworld_job_1"
     run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(minutes=1)
     description = "Write Hello world to helloworld.txt"
-    batch_id = "example_task_name"  # assume 1 for example
+    batch_id = "example_batch_name"  # assume 1 for example
     
+
+
 
     CreateJob(
         cur=cur,

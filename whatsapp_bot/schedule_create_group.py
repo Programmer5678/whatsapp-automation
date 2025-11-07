@@ -1,6 +1,5 @@
 import time
 from typing import List, Optional
-from apscheduler.triggers.cron import CronTrigger
 
 from zoneinfo import ZoneInfo
 
@@ -8,10 +7,8 @@ from timezone import TIMEZONE
 from send_stuff_to_group import send_stuff
 from classes import JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
-from evo_request import evo_request, evo_request_with_retries
+from evo_request import  evo_request_with_retries
 from handle_failed_adds import handle_failed_adds
-from setup import setup_scheduler
-from domain_errors import EvolutionServerError
 from warnings import warn
 
 

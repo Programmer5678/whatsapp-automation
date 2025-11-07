@@ -1,12 +1,9 @@
 from sqlalchemy import Column, String, Integer
-from sqlalchemy.dialects.postgresql import ARRAY
-from setup import Base
 
 from sqlalchemy import Column, String, ForeignKey, Integer, Boolean
 from sqlalchemy.orm import relationship
 
-from datetime import datetime
-import enum
+
 from sqlalchemy import (
 Column,
 Integer,
@@ -15,10 +12,13 @@ Text,
 DateTime,
 func,
 ForeignKey,
-Index,
 )
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.orm import declarative_base
+
+from job_status import JOBSTATUS
+
+Base = declarative_base()
 
 class GroupInfo(Base):
     __tablename__ = "group_info"
@@ -54,19 +54,12 @@ class JobBatch(Base):
     name = Column(String(100), primary_key=True)
     description = Column(String(255), nullable=True)
  
- 
-class JobStatus(enum.Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
-    FAILURE = "FAILURE"
-    DELETED = "DELETED"
 
 
 # Postgres ENUM type (create_type=True will instruct SQLAlchemy to emit CREATE TYPE when using
 # metadata.create_all; prefer migrations for production)
 jobstatus_enum = PG_ENUM(
-*(member.value for member in JobStatus),
+*JOBSTATUS.values(),
 name="jobstatus",
 create_type=True,
 )   
@@ -80,7 +73,7 @@ class JobInformation(Base):
 
 
     # status uses the Postgres ENUM, defaults to PENDING
-    status = Column(jobstatus_enum, nullable=False, server_default=JobStatus.PENDING.value)
+    status = Column(jobstatus_enum, nullable=False, server_default=JOBSTATUS["PENDING"] )
 
     # scheduled datetime (required)
     # scheduled_at = Column(DateTime(timezone=True), nullable=False)
