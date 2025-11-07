@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field
+import logging
 from typing import List, Callable
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from datetime import datetime
 from typing import Any, Optional, Dict
 from sqlalchemy import text
+
+from job_status import JOBSTATUS
 
 # --- Simple container you asked for ---
 @dataclass
@@ -58,7 +61,6 @@ class CreateJob:
     ):
         params = params or {}
         
-        
 
         # 1) schedule APScheduler date job with id
         scheduler.add_job(
@@ -86,3 +88,40 @@ class CreateJob:
                 "batch_id": batch_id,
             },
         )
+       
+       
+    @classmethod 
+    def delete_job(cls, scheduler: BackgroundScheduler, cur, job_id: str):
+        """
+        Deletes a scheduled job from both the scheduler and the database.
+        
+        Parameters:
+            scheduler (BackgroundScheduler): The scheduler instance.
+            cur: The database cursor.
+            job_id (str): The ID of the job to delete.
+        """
+        
+        log = logging.debug if False else print
+        
+        
+        # Check if the job exists in the scheduler
+        job = scheduler.get_job(job_id)
+        
+        if job:  # Job exists
+            log("Job found in scheduler.")
+            # Remove job from scheduler
+            scheduler.remove_job(job_id)
+            log(f"Job {job_id} removed from scheduler.")
+            
+            
+        
+        DELETED_JOB_STATUS = JOBSTATUS["DELETED"]
+        
+        # Remove job information from database
+        delete_sql = text(f"UPDATE job_information SET status = '{DELETED_JOB_STATUS}' WHERE id = :job_id")
+        cur.execute(delete_sql, {"job_id": job_id})
+        
+
+        
+        
+        

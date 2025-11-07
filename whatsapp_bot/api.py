@@ -119,9 +119,18 @@ def is_connected():
     return {"connected": connected}
 
 
+@app.delete("/delete_job")
+def delete_job(job_id: str, cur=Depends(get_cursor_dep)):
+    
+    # Delete job from scheduler and update DB
+    CreateJob.delete_job(scheduler, cur, job_id)
+    
+    return {"message": f"Job {job_id} deleted."}
 
 @app.delete("/delete_all_jobs")
 def delete_all_jobs():
+    
+    
     
     scheduler.remove_all_jobs()
     return {"message": "All jobs deleted."}
@@ -141,6 +150,56 @@ def _format_dt(dt: Optional[datetime]) -> Optional[str]:
         return str(dt)
 
 
+
+def get_job_info(job_id: str, cur, scheduler: BackgroundScheduler) -> Optional[Dict[str, Any]]:
+    """
+    Retrieves job information from both the job_information table and the APScheduler job.
+
+    Args:
+        job_id (str): The job ID to search for.
+        cur: The DB cursor (to query the database).
+        scheduler: The APScheduler instance.
+
+    Returns:
+        dict: A dictionary containing job information from both sources, or None if not found.
+    """
+    # 1) Query job_information table for the job details
+    job_info_sql = text("""
+        SELECT id, description, status, job_id, batch_id, created_at
+        FROM job_information
+        WHERE id = :job_id
+    """)
+    
+    result = cur.execute(job_info_sql, {"job_id": job_id}).first()
+
+    if not result:
+        # If no job information was found in the database, return None
+        return None
+
+    # Unpack the result from the database directly
+    job_info = {**result._mapping }
+
+    # 2) Query APScheduler for the job details
+    job = scheduler.get_job(job_id)
+    if job:
+        # APScheduler job info (just add these specific fields to job_info)
+        trigger = job.trigger
+        start_date = getattr(trigger, 'start_date', None)
+        end_date = getattr(trigger, 'end_date', None)
+
+        job_info.update({
+            "next_run_time": _format_dt(job.next_run_time) if getattr(job, 'next_run_time', None) else None,
+            "trigger": str(trigger),
+            "start_date": _format_dt(start_date),
+            "end_date": _format_dt(end_date),
+        })
+    
+    return job_info
+
+
+
+
+
 def get_jobs_in_dir(dir_prefix: str) -> Dict[str, Any]:
     """
     Return information about jobs whose IDs start with the given directory prefix.
@@ -154,7 +213,7 @@ def get_jobs_in_dir(dir_prefix: str) -> Dict[str, Any]:
         dir_prefix = dir_prefix + '/'
 
     all_jobs = scheduler.get_jobs()
-
+    
     def matches(job_id: Optional[str]) -> bool:
 
         return bool(job_id) and job_id.startswith(dir_prefix)
@@ -185,6 +244,10 @@ def get_jobs_in_dir(dir_prefix: str) -> Dict[str, Any]:
         "jobs": matching_jobs,
     }
 
+
+@app.get("/get_job_info")
+def get_job_info_endpoint(job_id: str, cur=Depends(get_cursor_dep)):
+    return get_job_info(job_id, cur, scheduler)
 
 @app.get("/get_all_jobs")
 def get_all_jobs():
