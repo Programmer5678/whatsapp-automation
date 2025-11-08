@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
 from send_stuff_to_group import send_stuff
-from classes import JobInfo, WhatsappGroupCreate
+from classes import CreateJob, JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import  evo_request_with_retries
 from handle_failed_adds import handle_failed_adds
@@ -47,7 +47,7 @@ def pretty_print_trigger(trigger, use_logging=True):
 
 
 
-def create_group(req: WhatsappGroupCreate) -> str:
+def create_group(req: WhatsappGroupCreate, cur) -> str:
     """
     Create group with Evolution API v2.
     Returns the group ID.
@@ -66,7 +66,7 @@ def create_group(req: WhatsappGroupCreate) -> str:
     group_id = evo_request_with_retries("group/create", payload).json()["id"]
 
     # Add remaining participants in batches of 20
-    schedule_add_participants_in_batches(req.sched, group_id, rest_of_participants, req.dir)
+    schedule_add_participants_in_batches( group_id, rest_of_participants, req.job_batch_name, req.sched, cur)
 
     return group_id
 
@@ -104,12 +104,17 @@ def add_participants_in_batches(group_id: str, participants: List[str]) -> None:
         time.sleep(10)
 
 
+
+
+
+
 # --- scheduler helper: schedule a single one-off job that runs the function once ---
 def schedule_add_participants_in_batches(
-    sched,
     group_id: str,
     participants: List[str],
-    job_dir,
+    job_batch_name,
+    sched, 
+    cur
 ) -> str:
     """
     Schedule a single one-off APScheduler job that will call add_participants_in_batches.
@@ -120,17 +125,21 @@ def schedule_add_participants_in_batches(
     Returns the job id.
     """
 
+    full_job_id = f"{job_batch_name}/add_participants_in_batches"
 
     # ensure the function is a top-level callable (it is)
-    job = sched.add_job(
+    job = CreateJob(
         func=add_participants_in_batches,
-        trigger="date",
-        run_date=datetime.now(ZoneInfo(TIMEZONE)),
+        run_time=datetime.now(ZoneInfo(TIMEZONE)),
         args=[group_id, participants],
-        id=job_dir + "/add_participants_in_batches"
+        id=full_job_id,
+        batch_id=job_batch_name,
+        scheduler=sched,
+        cur=cur,
+        description="Add participants in batches to group " + group_id,
     )
 
-    return job.id
+    return full_job_id
 
 
 
@@ -274,31 +283,57 @@ def job_function( invite_msg_title: str, media, messages, group_id: str ):
 
 
 
-def schedule_times_as_date_jobs(job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
+    def __init__(
+        self,
+        cur,                     # DB-API cursor (caller provides)
+        scheduler,               # running APScheduler scheduler
+        id: str,                 # required id (used for DB row and scheduler job id)
+        description: str,
+        batch_id: int,
+        run_time: datetime,
+        func,                    # callable to schedule
+        params: Optional[Dict[str, Any]] = None,
+        coalesce: bool = True,
+        misfire_grace_time: int = 600,
+    ):
+        params = params or {}
+
+
+def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
     """
     Schedule given datetimes as one-shot 'date' jobs.
     """
     
-    # print(f"Scheduling {len(run_times)} jobs for {job_info.dir}...")
+    # print(f"Scheduling {len(run_times)} jobs for {job_info.job_batch_name}...")
     
     for idx, run_time in enumerate(run_times):
-        job_id = f"{job_info.dir}/{base_id}/{idx}"
-        print(f"Scheduling {job_id} -> {run_time.isoformat()}")
+        job_full_id = f"{job_info.job_batch_name}/{base_id}/{idx}"
+        print(f"Scheduling {job_full_id} -> {run_time.isoformat()}")
         
         # print(f"Scheduling job {job_id} at {run_time}")
+        
+        CreateJob(func=job_info.function,
+                  run_time=run_time,
+                  id=job_full_id,
+                  batch_id=job_info.job_batch_name,
+                  scheduler=job_info.scheduler,
+                  cur=cur,
+                  description=f"One-off job {job_full_id} for {job_info.job_batch_name}",
+                  params=job_info.params
+                  )
 
-        job_info.scheduler.add_job(
-            job_info.function,
-            "date",
-            run_date=run_time,
-            id=job_id,
-            kwargs=job_info.params,
-            coalesce=True,
-            misfire_grace_time=600,
-        )
+        # job_info.scheduler.add_job(
+        #     job_info.function,
+        #     "date",
+        #     run_date=run_time,
+        #     id=job_full_id,
+        #     kwargs=job_info.params,
+        #     coalesce=True,
+        #     misfire_grace_time=600,
+        # )
 
 
-def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str, runs: int = 3) -> None:
+def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: int = 3) -> None:
     """
     Schedule `runs` jobs evenly between start (now + 5 min) and the deadline.
     """
@@ -317,11 +352,11 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str, runs: int = 
             "messages": req.messages,
             "group_id": group_id,
         },
-        dir=req.dir,
+        job_batch_name=req.job_batch_name,
     )
 
     run_times = compute_spread_times(start, deadline, runs)
-    schedule_times_as_date_jobs(job, run_times, base_id="pre_deadline_job")
+    schedule_times_as_date_jobs(cur, job, run_times, base_id="pre_deadline_job")
 
 
 
@@ -347,7 +382,7 @@ def schedule_deadline_jobs(req: WhatsappGroupCreate, group_id: str, runs: int = 
 #             "messages": req.messages,
 #             "group_id": group_id
 #         },
-#         dir=req.dir
+#         job_batch_name=req.job_batch_name
 #     )
 
 #     # Schedule the jobs
@@ -388,18 +423,18 @@ def _save_group_and_participants(cur, group_id: str, participants: list[str]) ->
 
 
 # --- FULL FLOW (now accepts WhatsappGroupCreate) ---
-def create_group_and_invite(cur, req: WhatsappGroupCreate, job_batch_name="example_task_name") -> str:
+def create_group_and_invite(cur, req: WhatsappGroupCreate) -> str:
     
-    cur.execute(text("INSERT INTO job_batch (name) VALUES (:name)"), {"name": job_batch_name} )
+    cur.execute(text("INSERT INTO job_batch (name) VALUES (:name)"), {"name": req.job_batch_name} )
     
-    group_id = create_group(req)
+    group_id = create_group(req, cur)
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")
 
     # persist group and participants (extracted, but logic unchanged)
     _save_group_and_participants(cur, group_id, req.participants)
 
-    schedule_deadline_jobs(req, group_id)
+    schedule_deadline_jobs(cur, req, group_id)
 
     return group_id
 
@@ -416,7 +451,7 @@ def create_group_and_invite(cur, req: WhatsappGroupCreate, job_batch_name="examp
 #     media=[],
 #     deadline=datetime(2025, 10, 26, tzinfo=ZoneInfo(TIMEZONE)),
 #     sched=setup_scheduler(),
-#     dir="/blah"
+#     job_batch_name="/blah"
 # )
 
 

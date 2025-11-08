@@ -16,7 +16,7 @@ from schedule_create_group import create_group_and_invite
 #     media: List[str]
 #     deadline: datetime
 #     sched :  BackgroundScheduler
-#     dir: str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
+#     job_batch_name: str = ""  # which job_batch_name for jobs (e.g mavdaks/30.07 etc)
 
 #     # Derived values
 #     mavdak_date = req.base_date.strftime("%d/%m/%Y")
@@ -32,7 +32,7 @@ from schedule_create_group import create_group_and_invite
 #         sched = sched, 
 #     )
 
-def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : str, cur) -> str:
+def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, job_batch_name : str, cur) -> str:
     
     """
     Create a WhatsApp group for the mavdak and send initial messages.
@@ -108,11 +108,12 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, dir : st
         media=[],
         deadline=req.deadline_mavdak_list,  # fixed field name
         sched=sched,
-        dir=dir     # use req.base_date instead of mavdak_date
+        job_batch_name=job_batch_name    
     )
 
-    mavdak_group_id = create_group_and_invite(cur, mavdak_group)
-    print(f"Mavdak group ID: {mavdak_group_id}")
+    mavdak_group_id = create_group_and_invite(cur, mavdak_group, job_batch_name=job_batch_name)
+    
+    # print(f"Mavdak group ID: {mavdak_group_id}")
     return mavdak_group_id
 
 

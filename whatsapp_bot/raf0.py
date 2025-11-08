@@ -46,7 +46,7 @@ def raf0(req : Raf0RequestModel, sched: BackgroundScheduler, cur) -> None:
         media=[media],
         sched=sched,
         deadline=calculate_deadline(req.date),
-        dir=f"raf0/{req.date}"
+        job_batch_name=f"raf0/{req.date}"
     )
     
     

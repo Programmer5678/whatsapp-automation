@@ -403,7 +403,7 @@ def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_
 
 
 # POST endpoint
-@app.post("/mavdak", status_code=status.HTTP_201_CREATED)
+@app.post("/mavdak", status_code=status.HTTP_202_ACCEPTED)
 def create_mavdak(payload: MavdakRequestModel, cur = Depends(get_cursor_dep)  ):
     
     # Validate WhatsApp connection 

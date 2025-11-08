@@ -29,15 +29,15 @@ def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, c
     """
 
     
-    dir = f"mavdaks/{req.base_date}" 
+    job_batch_name = f"mavdaks/{req.base_date}" 
 
     # Step 1 — Start the mavdak
-    mavdak_group_id = mavdak_start( req ,sched, dir, cur) 
+    mavdak_group_id = mavdak_start( req ,sched, job_batch_name, cur) 
     
 
     when_to_send = datetime.combine(req.base_date, TIME_TO_SEND_MORNING_MESSAGES, tzinfo=ZoneInfo(TIMEZONE))
     # Step 2 — Schedule the morning messages
-    mavdak_end(mavdak_group_id, when_to_send, sched, dir)
+    mavdak_end(mavdak_group_id, when_to_send, sched, job_batch_name)
     
     return {}
 

@@ -13,7 +13,7 @@ def hakhana(req: HakhanaRequestModel, sched: BackgroundScheduler, cur) -> None:
     - No media or custom messages.
     - invite_msg_title: "בבקשה להיכנס לקבוצה של ההכנה לקצונה שתתקיים ב {date}"
     - group_name: "הכנה לקצונה תקשוב {date}"
-    - dir: "hakhana/{date}"
+    - job_batch_name: "hakhana/{date}"
     """
     group_name = f"הכנה לקצונה תקשוב {req.date}"
     invite_msg_title = f"בבקשה להיכנס לקבוצה של ההכנה לקצונה שתתקיים ב {req.date}"
@@ -26,7 +26,7 @@ def hakhana(req: HakhanaRequestModel, sched: BackgroundScheduler, cur) -> None:
         media=[],                  # no media
         sched=sched,
         deadline=req.deadline,     # passed directly
-        dir=f"hakhana/{req.date}"
+        job_batch_name=f"hakhana/{req.date}"
     )
 
     group_id = create_group_and_invite(cur, hakhana_group)

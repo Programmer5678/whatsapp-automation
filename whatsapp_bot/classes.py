@@ -19,7 +19,7 @@ class WhatsappGroupCreate:
     media: List[str]
     deadline: datetime
     sched :  BackgroundScheduler
-    dir: str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
+    job_batch_name: str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
 
 
 
@@ -28,7 +28,7 @@ class JobInfo:
     scheduler: BackgroundScheduler
     function: Callable
     params: dict = field(default_factory=dict)  # default to empty dict if not provided
-    dir : str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
+    job_batch_name : str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
     
     
     
@@ -72,6 +72,9 @@ class CreateJob:
             coalesce=coalesce,
             misfire_grace_time=misfire_grace_time,
         )
+        
+        
+        
 
         # 2) insert row into job_information (FK to apscheduler_jobs.id must now succeed)
         insert_sql = text("""
