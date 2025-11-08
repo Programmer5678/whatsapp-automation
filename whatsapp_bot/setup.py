@@ -90,6 +90,130 @@ def pretty_event(event):
 
     return "\n".join(lines)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def check_deleted_status(job_id, event_code, use_logging=True):
+    """Check if the job is DELETED and raise an exception if event is not JOB_REMOVED."""
+    log = logging.debug if use_logging else print
+    
+    with get_cursor() as cur:
+        current_status = cur.execute(
+            text("SELECT status FROM job_information WHERE id = :job_id"),
+            {"job_id": job_id}
+        ).first()
+        
+        if current_status:
+            current_status = current_status[0]
+            if current_status == JOBSTATUS["DELETED"] and event_code != EVENT_JOB_REMOVED:
+                log(f"Cannot update job {job_id} because it is DELETED and the event is not JOB_REMOVED.")
+                raise Exception(f"Cannot update job {job_id} because it is DELETED and the event is not JOB_REMOVED.")
+        else:
+            log(f"Job {job_id} not found in the database.")
+            return None  # Return None to indicate job wasn't found
+    
+    return current_status
+
+
+def determine_new_status(job_id, event_code, current_status, use_logging=True):
+    """Determine the new status based on the event code."""
+    log = logging.debug if use_logging else print
+
+    if event_code == EVENT_JOB_SUBMITTED:
+        if current_status == JOBSTATUS["PENDING"]:
+            return JOBSTATUS["RUNNING"]
+        else:
+            log(f"Job {job_id} is not in PENDING state, no update needed.")
+            return None  # Don't update if not PENDING
+
+    elif event_code == EVENT_JOB_EXECUTED:
+        return JOBSTATUS["SUCCESS"]
+
+    elif event_code == EVENT_JOB_ERROR:
+        return JOBSTATUS["FAILURE"]
+    
+    elif event_code == EVENT_JOB_MISSED:
+        return JOBSTATUS["MISSED"]
+
+    else:
+        log(f"Unknown event code: {event_code}. Ignoring event for job {job_id}.")
+        return None  # Ignore other events
+
+
+def update_job_status_in_db(job_id, status, use_logging=True):
+    """Log and update the job status in the database."""
+    log = logging.debug if use_logging else print
+
+    log(f"Updating job {job_id} status to {status} in DB")
+
+    with get_cursor() as cur:
+        cur.execute(
+            text("UPDATE job_information SET status = :status WHERE id = :job_id"),
+            {"status": status, "job_id": job_id}
+        )
+
+
+def listener(event):
+    
+    if hasattr(event, "job_id") is False:
+        return  # Ignore events without job_id
+    
+    job_id = event.job_id
+
+    # Check if job is DELETED and raise an exception if event is not JOB_REMOVED
+    current_status = check_deleted_status(job_id, event.code)
+    if current_status is None:
+        return  # Exit if job wasn't found or is DELETED with incorrect event
+
+    # Determine the new status based on the event code
+    status = determine_new_status(job_id, event.code, current_status)
+    if status is None:
+        return  # Exit if no status update is needed
+
+    # Update the job status in the database
+    update_job_status_in_db(job_id, status)
+    
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+
+
 def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
 
 
@@ -101,29 +225,6 @@ def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
 
     scheduler = BackgroundScheduler(jobstores=jobstores)
     
-    
-            
-    def listener(event):
-        job_id = event.job_id
-        if event.code == EVENT_JOB_SUBMITTED:
-            status = JOBSTATUS["RUNNING"]
-        elif event.code == EVENT_JOB_EXECUTED:
-            status = JOBSTATUS["SUCCESS"]
-        elif event.code == EVENT_JOB_ERROR:
-            status = JOBSTATUS["FAILURE"]
-        else:
-            log(f"why here? {pretty_event(event)}")
-            return  # ignore other events
-
-        log(f"Updating job {job_id} status to {status} in DB")
-
-        with get_cursor() as cur:
-            
-            cur.execute(
-                text("UPDATE job_information SET status = :status WHERE id = :job_id"),
-                {"status": status, "job_id": job_id}
-            )
-            
 
 
     scheduler.add_listener(

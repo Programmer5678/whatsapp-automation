@@ -80,7 +80,7 @@ def write_helloworld():
 @app.post("/schedule_helloworld")
 def schedule_helloworld(cur=Depends(get_cursor_dep)):
     job_id = "helloworld_job_1"
-    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(minutes=1)
+    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)
     description = "Write Hello world to helloworld.txt"
     batch_id = "example_batch_name"  # assume 1 for example
     
@@ -96,6 +96,7 @@ def schedule_helloworld(cur=Depends(get_cursor_dep)):
         run_time=run_date,
         description=description,
         batch_id=batch_id,
+        misfire_grace_time=1
     )
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
 
@@ -129,8 +130,6 @@ def delete_job(job_id: str, cur=Depends(get_cursor_dep)):
 
 @app.delete("/delete_all_jobs")
 def delete_all_jobs():
-    
-    
     
     scheduler.remove_all_jobs()
     return {"message": "All jobs deleted."}
