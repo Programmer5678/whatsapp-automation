@@ -11,7 +11,7 @@ from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
 from setup import get_cursor_dep, setup_scheduler, create_tables
 from raf0 import raf0
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from sqlalchemy import text, bindparam
 
 from hakhana import hakhana
@@ -120,23 +120,43 @@ def is_connected():
     return {"connected": connected}
 
 
+def del_job(job_id: str, cur):
+    # Delete job from scheduler and update DB
+    CreateJob.delete_job(scheduler, cur, job_id)
+
 @app.delete("/delete_job")
 def delete_job(job_id: str, cur=Depends(get_cursor_dep)):
     
     # Delete job from scheduler and update DB
-    CreateJob.delete_job(scheduler, cur, job_id)
+    del_job(job_id, cur)
     
     return {"message": f"Job {job_id} deleted."}
 
-@app.delete("/delete_all_jobs")
-def delete_all_jobs():
+
+@app.delete("/delete_job_batch")
+def delete_job_batch(batch_id: str, cur=Depends(get_cursor_dep)):
     
-    scheduler.remove_all_jobs()
-    return {"message": "All jobs deleted."}
+    # Query for all job IDs with the given batch_id
+    job_ids = [ row[0] for row in cur.execute(
+        text("SELECT id FROM job_information WHERE batch_id = :batch_id"),
+        {"batch_id": batch_id}
+    ).fetchall() ]
+    
+    # Delete each job
+    for job_id in job_ids:
+        del_job(job_id, cur)
+        
+    deleted_jobs_info = get_job_info(job_id, cur, scheduler)
+        
+    cur.execute(
+        text("DELETE FROM job_batch WHERE name = :batch_id"),
+        {"batch_id": batch_id}
+    )
+    
+    return {"message": f"All jobs in batch {batch_id} deleted.", "deleted_jobs_info": deleted_jobs_info}
 
 
-    
-    
+
     
     
 def _format_dt(dt: Optional[datetime]) -> Optional[str]:
@@ -196,10 +216,39 @@ def get_job_info(job_id: str, cur, scheduler: BackgroundScheduler) -> Optional[D
     return job_info
 
 
+def matches(job_id: Optional[str], dir_prefix: str) -> bool:
+    """Returns True if the job_id matches the prefix."""
+    return bool(job_id) and job_id.startswith(dir_prefix)
+
+def get_matching_jobs(all_job_ids: List, dir_prefix: str, cur) -> List[dict]:
+    """
+    Returns a list of job dictionaries that match the given prefix.
+
+    Parameters:
+        - all_jobs: A list of job objects to filter.
+        - dir_prefix: The prefix that job IDs should start with to be included.
+
+    Returns:
+        - A list of dictionaries containing job details for matching jobs.
+    """
+    matching_jobs = []
+
+    # Loop through all jobs and filter based on the matches function
+    for job_id in all_job_ids:
+        if not matches(job_id, dir_prefix):
+            continue
+        
+        # Call the get_job_info function to extract job details
+        job_dict = get_job_info(job_id, cur, scheduler)
+        
+        # Append the result to matching_jobs
+        matching_jobs.append(job_dict)
+
+    return matching_jobs
 
 
 
-def get_jobs_in_dir(dir_prefix: str) -> Dict[str, Any]:
+def get_jobs_in_dir(dir_prefix: str, cur) -> Dict[str, Any]:
     """
     Return information about jobs whose IDs start with the given directory prefix.
     If dir_prefix is an empty string, returns all jobs.
@@ -211,31 +260,10 @@ def get_jobs_in_dir(dir_prefix: str) -> Dict[str, Any]:
     if dir_prefix and not dir_prefix.endswith('/'):
         dir_prefix = dir_prefix + '/'
 
-    all_jobs = scheduler.get_jobs()
+    all_job_ids = [ el[0] for el in cur.execute(text("SELECT id FROM job_information")).fetchall() ]
     
-    def matches(job_id: Optional[str]) -> bool:
-
-        return bool(job_id) and job_id.startswith(dir_prefix)
-
-    matching_jobs = []
-    for job in all_jobs:
-        if not matches(job.id):
-            continue
-
-        # Safely extract start_date and end_date from the trigger if present
-        trigger = job.trigger
-        start_date = getattr(trigger, 'start_date', None)
-        end_date = getattr(trigger, 'end_date', None)
-
-        job_dict = {
-            "id": job.id,
-            "name": job.name,
-            "next_run_time": _format_dt(job.next_run_time) if getattr(job, 'next_run_time', None) else None,
-            "trigger": str(trigger),
-            "start_date": _format_dt(start_date),
-            "end_date": _format_dt(end_date),
-        }
-        matching_jobs.append(job_dict)
+    matching_jobs = get_matching_jobs(all_job_ids, dir_prefix, cur)
+    
 
     return {
         "dir_prefix": dir_prefix,
@@ -249,15 +277,15 @@ def get_job_info_endpoint(job_id: str, cur=Depends(get_cursor_dep)):
     return get_job_info(job_id, cur, scheduler)
 
 @app.get("/get_all_jobs")
-def get_all_jobs():
+def get_all_jobs(cur=Depends(get_cursor_dep)):
     # Return all jobs by calling the shared helper with an empty prefix
-    return get_jobs_in_dir("")
+    return get_jobs_in_dir("", cur)
 
 
 @app.get("/get_all_jobs_in_dir")
-def get_all_jobs_in_dir(dir_prefix: str):
+def get_all_jobs_in_dir(dir_prefix: str, cur=Depends(get_cursor_dep)):
     # Delegate to shared helper
-    return get_jobs_in_dir(dir_prefix)
+    return get_jobs_in_dir(dir_prefix, cur)
 
 
 @app.post("/get_participants")
