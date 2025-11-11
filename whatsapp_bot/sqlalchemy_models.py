@@ -1,6 +1,5 @@
-from sqlalchemy import Column, String, Integer
 
-from sqlalchemy import Column, String, ForeignKey, Integer, Boolean
+from sqlalchemy import Column, String, ForeignKey, Integer, Boolean, JSON
 from sqlalchemy.orm import relationship
 
 
@@ -84,6 +83,9 @@ class JobInformation(Base):
     
     # Foreign key to job_batch with ON DELETE CASCADE
     batch_id = Column(String, ForeignKey("job_batch.name", ondelete="CASCADE"), nullable=False, index=True)
+    
+    
+    issues = Column(JSON, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

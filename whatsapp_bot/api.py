@@ -50,16 +50,23 @@ from timezone import TIMEZONE
 def write_helloworld():
     
     
+    
+    
     print("waiting...")
     import time
     time.sleep(10)
     print("done waiting")
+    
+    # from warnings import warn
+    # warn("Trying warn inside write_helloworld")
     
     print("Writing Hello world to helloworld.txt")
     with open("helloworld.txt", "w") as f:
         f.write("Hello world")
         
     # raise Exception("Job failed")
+    
+    
     
     
         
@@ -130,6 +137,8 @@ def delete_job(job_id: str, cur=Depends(get_cursor_dep)):
     # Delete job from scheduler and update DB
     del_job(job_id, cur)
     
+    
+    
     return {"message": f"Job {job_id} deleted."}
 
 
@@ -142,11 +151,13 @@ def delete_job_batch(batch_id: str, cur=Depends(get_cursor_dep)):
         {"batch_id": batch_id}
     ).fetchall() ]
     
+    deleted_jobs_info = []
+    
     # Delete each job
     for job_id in job_ids:
         del_job(job_id, cur)
         
-    deleted_jobs_info = get_job_info(job_id, cur, scheduler)
+        deleted_jobs_info.append( get_job_info(job_id, cur, scheduler) )
         
     cur.execute(
         text("DELETE FROM job_batch WHERE name = :batch_id"),

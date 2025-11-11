@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 TIME_TO_SEND_MORNING_MESSAGES = time(8, 45)  # Time to send morning messages on the day of mavdak
-TIME_TO_SEND_MORNING_MESSAGES = time(20, 58)  # Time to send morning messages on the day of mavdak
+# TIME_TO_SEND_MORNING_MESSAGES = time(20, 58)  # Time to send morning messages on the day of mavdak
 
 
 def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, cur) -> None:
@@ -37,7 +37,7 @@ def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, c
 
     when_to_send = datetime.combine(req.base_date, TIME_TO_SEND_MORNING_MESSAGES, tzinfo=ZoneInfo(TIMEZONE))
     # Step 2 — Schedule the morning messages
-    mavdak_end(mavdak_group_id, when_to_send, sched, job_batch_name)
+    mavdak_end(mavdak_group_id, when_to_send, sched, job_batch_name, cur)
     
     return {}
 

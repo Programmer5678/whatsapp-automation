@@ -46,7 +46,7 @@ https://keinan-sheffy.com/kst2/exam/login
 
 
 
-def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler, job_batch_name : str) -> None:
+def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler, job_batch_name : str, cur) -> None:
     """
     Schedule the sending of mavdak end messages at the given time,
     then shut down the scheduler immediately after.
@@ -60,7 +60,7 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
     # )
     
     CreateJob(
-        cur=None,  # Assuming cur is not needed for this job creation
+        cur=cur,  # Assuming cur is not needed for this job creation
         scheduler=sched,
         id=f"{job_batch_name}/mavdak_end",
         description="Send mavdak end messages",

@@ -8,6 +8,7 @@ import time
 
 def send_messages_to_group(messages : List[str] , group_id: str) -> None:
     for msg in messages:
+                
         evo_request_with_retries(
             "message/sendText",
             {
@@ -16,6 +17,8 @@ def send_messages_to_group(messages : List[str] , group_id: str) -> None:
                 "delay": 50000
             }
         )
+        
+    
         
         time.sleep(10)
 

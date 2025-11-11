@@ -111,7 +111,7 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, job_batc
         job_batch_name=job_batch_name    
     )
 
-    mavdak_group_id = create_group_and_invite(cur, mavdak_group, job_batch_name=job_batch_name)
+    mavdak_group_id = create_group_and_invite(cur, mavdak_group)
     
     # print(f"Mavdak group ID: {mavdak_group_id}")
     return mavdak_group_id

@@ -102,7 +102,7 @@ def evo_request_with_retries(method: str, payload: dict = None, get: bool = Fals
     Call evo_request with retry logic for connection errors.
     Wait times: 10 seconds, 5 minutes, 30 minutes, then raise the exception.
     """
-    wait_times = [10, 20]  # seconds: 10s, 5min, 30min
+    wait_times = [10, 20, 60]  # seconds: 10s, 5min, 30min
 
     for attempt, wait in enumerate(wait_times, start=1):
         try:

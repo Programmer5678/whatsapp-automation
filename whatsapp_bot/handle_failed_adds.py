@@ -1,9 +1,10 @@
-
+import json
 from typing import List
 from warnings import warn
 from evolution_framework import _phone_number, get_group_invite_link, get_group_member_ids
 from evo_request import evo_request_with_retries
 import time
+from sqlalchemy import text
 
 
 def compute_failed_to_add(participants: List[str], actual_members: set) -> List[str]:
@@ -31,7 +32,7 @@ def compute_failed_to_add(participants: List[str], actual_members: set) -> List[
 
 
 # --- STEP 5: Send invite to failed participants (unchanged signature) ---
-def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
+def send_invite_to_failed(cur, job_name, failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
     
         
     message = f"{invite_msg_title}\n\n{invite_link}"
@@ -49,7 +50,19 @@ def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg
         
         try: # if resp is error because participant doesnt exist --> just warn and handle
             assert resp.json()["response"]["message"][0]["exists"] is False
-            warn(f"Participant {p} does not exist — skipping.")
+            issue = {
+                "participant": p,
+                "issue": "does not exist - could not send invite. skipping. "
+            }
+            
+            cur.execute(text("""
+                UPDATE job_information
+                SET issues = :issue_json
+                WHERE id = :job_name
+            """), 
+            {"issue_json": json.dumps(issue) , "job_name": job_name})
+            
+            warn(f"Error in job {job_name}: Participant {p} does not exist — skipping.")
         except Exception:
             resp.raise_for_status()
        
@@ -58,7 +71,7 @@ def send_invite_to_failed(failed_to_add: List[str], invite_link: str, invite_msg
     
 
 
-def handle_failed_adds(participants: list[str], invite_msg_title: str, group_id: str) -> None:
+def handle_failed_adds(cur, job_name, participants: list[str], invite_msg_title: str, group_id: str) -> None:
     """
     Handle failed participant additions and send them an invite link.
     """
@@ -67,7 +80,7 @@ def handle_failed_adds(participants: list[str], invite_msg_title: str, group_id:
 
     if failed_to_add:
         invite_link = get_group_invite_link(group_id)
-        send_invite_to_failed(failed_to_add, invite_link, invite_msg_title)
+        send_invite_to_failed(cur, job_name, failed_to_add, invite_link, invite_msg_title)
 
     
     

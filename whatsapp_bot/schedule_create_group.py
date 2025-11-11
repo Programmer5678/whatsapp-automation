@@ -131,12 +131,15 @@ def schedule_add_participants_in_batches(
     job = CreateJob(
         func=add_participants_in_batches,
         run_time=datetime.now(ZoneInfo(TIMEZONE)),
-        args=[group_id, participants],
+        params={
+            "group_id": group_id,
+            "participants": participants
+        },
         id=full_job_id,
         batch_id=job_batch_name,
         scheduler=sched,
         cur=cur,
-        description="Add participants in batches to group " + group_id,
+        description=f"Add remainding participants to group: {participants} " + group_id,
     )
 
     return full_job_id
@@ -264,39 +267,19 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, bussiness_
 
 
 
-def job_function_core( invite_msg_title: str, media, messages, group_id: str, cur):
+def job_function_core( job_name : str,  invite_msg_title: str, media, messages, group_id: str, cur):
     
     participants = list(cur.execute(text("select phone_number from participants where group_id = :gid"), {"gid" : group_id} ).fetchall())
     
-    handle_failed_adds(participants,  invite_msg_title, group_id)
+    handle_failed_adds(cur, job_name, participants,  invite_msg_title, group_id)
     send_stuff(media, messages, group_id)
     
-def job_function( invite_msg_title: str, media, messages, group_id: str ):
+def job_function(job_name : str,  invite_msg_title: str, media, messages, group_id: str ):
     
     with get_cursor() as cur:
-        job_function_core( invite_msg_title, media, messages, group_id, cur )
+        job_function_core( job_name,  invite_msg_title, media, messages, group_id, cur )
 
 
-
-
-
-
-
-
-    def __init__(
-        self,
-        cur,                     # DB-API cursor (caller provides)
-        scheduler,               # running APScheduler scheduler
-        id: str,                 # required id (used for DB row and scheduler job id)
-        description: str,
-        batch_id: int,
-        run_time: datetime,
-        func,                    # callable to schedule
-        params: Optional[Dict[str, Any]] = None,
-        coalesce: bool = True,
-        misfire_grace_time: int = 600,
-    ):
-        params = params or {}
 
 
 def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
@@ -318,8 +301,8 @@ def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime
                   batch_id=job_info.job_batch_name,
                   scheduler=job_info.scheduler,
                   cur=cur,
-                  description=f"One-off job {job_full_id} for {job_info.job_batch_name}",
-                  params=job_info.params
+                  description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
+                  params={**job_info.params, "job_name" : job_full_id}
                   )
 
         # job_info.scheduler.add_job(
@@ -333,13 +316,13 @@ def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime
         # )
 
 
-def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: int = 3) -> None:
+def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: int = 3, minutes_before_start=1 ) -> None:
     """
     Schedule `runs` jobs evenly between start (now + 5 min) and the deadline.
     """
     validate_deadline(req.deadline)  
 
-    start = datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=5)
+    start = datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=minutes_before_start)
     deadline = req.deadline.astimezone(ZoneInfo(TIMEZONE))
 
 
