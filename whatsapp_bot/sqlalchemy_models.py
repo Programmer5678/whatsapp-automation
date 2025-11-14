@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, String, ForeignKey, Integer, Boolean, JSON
+from sqlalchemy import Column, String, ForeignKey, Integer, Boolean, JSON, ARRAY
 from sqlalchemy.orm import relationship
 
 
@@ -85,7 +85,9 @@ class JobInformation(Base):
     batch_id = Column(String, ForeignKey("job_batch.name", ondelete="CASCADE"), nullable=False, index=True)
     
     
-    issues = Column(JSON, nullable=True)
+    issues = Column(ARRAY(JSON), nullable=True)
+    
+    exception = Column(JSON, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

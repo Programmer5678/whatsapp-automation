@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from models import ChangeParticipantsRequestModel, GetParticipantsRequestModel, HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel, SendMassMessagesRequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import is_whatsapp_connected, validate_whatsapp_connection
-from setup import get_cursor_dep, setup_scheduler, create_tables
+from setup import get_cursor, get_cursor_dep, setup_scheduler, create_tables
 from raf0 import raf0
 from typing import Dict, Any, List, Optional
 from sqlalchemy import text, bindparam
@@ -69,20 +69,6 @@ def write_helloworld():
     
     
     
-        
-        
-        
-        
-# def add_hooks(func):
-    
-#     def res():
-#         print("Before")
-#         func()
-#         print("After")
-        
-#     return res
-    
-# write_helloworld_with_hooks = add_hooks(write_helloworld)
     
 @app.post("/schedule_helloworld")
 def schedule_helloworld(cur=Depends(get_cursor_dep)):
@@ -105,6 +91,62 @@ def schedule_helloworld(cur=Depends(get_cursor_dep)):
         batch_id=batch_id,
         misfire_grace_time=1
     )
+    return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
+
+
+
+
+def add_issue_to_job_sql(cur, job_name, issue):
+    
+    """
+    Add an issue to a job in the job_information table.
+
+    Args:
+        cur: SQLAlchemy connection or cursor
+        job_name: ID or name of the job
+        issue: Python object representing the issue (will be JSON-serialized)
+    """
+    import json
+    cur.execute(
+        text("""
+            UPDATE job_information
+            SET issues =  array_append( issues, :issue_json )
+            WHERE id = :job_name
+        """),
+        {
+            "issue_json": json.dumps(issue),
+            "job_name": job_name
+        }
+    )
+
+def raise_helloworld_exception():
+    
+    
+    with get_cursor() as cur:
+        add_issue_to_job_sql(cur, "error_job_1", {"info": "Issue 1"})
+        add_issue_to_job_sql(cur, "error_job_1", {"info": "Issue 2"})
+    
+    raise Exception("Hello world exception from scheduled job")
+
+@app.post("/schedule_error_job")
+def schedule_error_job(cur=Depends(get_cursor_dep)):
+    job_id = "error_job_1"
+    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)
+    description = "Job that raises 'Hello world' exception"
+    batch_id = "example_batch_name"  # example batch
+
+    # Schedule the job
+    CreateJob(
+        cur=cur,
+        scheduler=scheduler,
+        id=job_id,
+        func=raise_helloworld_exception,
+        run_time=run_date,
+        description=description,
+        batch_id=batch_id,
+        misfire_grace_time=1
+    )
+
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
 
 
@@ -195,7 +237,7 @@ def get_job_info(job_id: str, cur, scheduler: BackgroundScheduler) -> Optional[D
     """
     # 1) Query job_information table for the job details
     job_info_sql = text("""
-        SELECT id, description, status, job_id, batch_id, created_at
+        SELECT *
         FROM job_information
         WHERE id = :job_id
     """)

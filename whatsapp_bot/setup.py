@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
+import json
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -8,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 from job_status import JOBSTATUS
+from exception_to_json import exception_to_json
 
 
 
@@ -181,6 +183,29 @@ def update_job_status_in_db(job_id, status, use_logging=True):
         )
 
 
+
+# e is a serialized exception
+def add_exception_to_job_sql(cur, job_name, e):
+    """
+    Add an issue to a job in the job_information table.
+
+    Args:
+        cur: SQLAlchemy connection or cursor
+        job_name: ID or name of the job
+        issue: Python object representing the issue (will be JSON-serialized)
+    """
+    cur.execute(
+        text("""
+            UPDATE job_information
+            SET exception = :exception_json
+            WHERE id = :job_name
+        """),
+        {
+            "exception_json": json.dumps(e),
+            "job_name": job_name
+        }
+    )
+
 def listener(event):
     
     if hasattr(event, "job_id") is False:
@@ -197,6 +222,11 @@ def listener(event):
     status = determine_new_status(job_id, event.code, current_status)
     if status is None:
         return  # Exit if no status update is needed
+    
+    if status == JOBSTATUS["FAILURE"]:
+        
+        with get_cursor() as cur:
+            add_exception_to_job_sql( cur, event.job_id, exception_to_json(event.exception) )
 
     # Update the job status in the database
     update_job_status_in_db(job_id, status)

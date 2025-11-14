@@ -31,6 +31,31 @@ def compute_failed_to_add(participants: List[str], actual_members: set) -> List[
 #     messenger.send_all()
 
 
+
+
+
+def add_issue_to_job_sql(cur, job_name, issue):
+    """
+    Add an issue to a job in the job_information table.
+
+    Args:
+        cur: SQLAlchemy connection or cursor
+        job_name: ID or name of the job
+        issue: Python object representing the issue (will be JSON-serialized)
+    """
+    cur.execute(
+        text("""
+            UPDATE job_information
+            SET issues =  array_append( issues, :issue_json )
+            WHERE id = :job_name
+        """),
+        {
+            "issue_json": json.dumps(issue),
+            "job_name": job_name
+        }
+    )
+
+
 # --- STEP 5: Send invite to failed participants (unchanged signature) ---
 def send_invite_to_failed(cur, job_name, failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
     
@@ -50,17 +75,17 @@ def send_invite_to_failed(cur, job_name, failed_to_add: List[str], invite_link: 
         
         try: # if resp is error because participant doesnt exist --> just warn and handle
             assert resp.json()["response"]["message"][0]["exists"] is False
-            issue = {
-                "participant": p,
-                "issue": "does not exist - could not send invite. skipping. "
-            }
             
-            cur.execute(text("""
-                UPDATE job_information
-                SET issues = :issue_json
-                WHERE id = :job_name
-            """), 
-            {"issue_json": json.dumps(issue) , "job_name": job_name})
+            add_issue_to_job_sql ( 
+                cur,
+                job_name,
+                
+                {
+                    "participant": p,
+                    "issue": "does not exist - could not send invite. skipping. "
+                }
+            )
+            
             
             warn(f"Error in job {job_name}: Participant {p} does not exist — skipping.")
         except Exception:
