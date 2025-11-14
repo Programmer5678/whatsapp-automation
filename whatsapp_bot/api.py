@@ -119,14 +119,27 @@ def add_issue_to_job_sql(cur, job_name, issue):
         }
     )
 
+
+
+# inhernet JobContext
+class JobbingAround:
+    
+    def __init__(self, job_name : str,  cur):
+        
+        self.cur = cur
+        self.job_name = job_name
+        
+
+    def run( self ):
+        add_issue_to_job_sql(self.cur, "error_job_1", {"info": "Issue 1"})
+        add_issue_to_job_sql(self.cur, "error_job_1", {"info": "Issue 2"})
+        
+        raise Exception("Hello world exception from scheduled job")
+    
 def raise_helloworld_exception():
-    
-    
     with get_cursor() as cur:
-        add_issue_to_job_sql(cur, "error_job_1", {"info": "Issue 1"})
-        add_issue_to_job_sql(cur, "error_job_1", {"info": "Issue 2"})
+        JobbingAround( "error_job_1", cur ).run( )
     
-    raise Exception("Hello world exception from scheduled job")
 
 @app.post("/schedule_error_job")
 def schedule_error_job(cur=Depends(get_cursor_dep)):

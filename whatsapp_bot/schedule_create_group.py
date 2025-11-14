@@ -8,7 +8,7 @@ from send_stuff_to_group import send_stuff
 from classes import CreateJob, JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import  evo_request_with_retries
-from handle_failed_adds import handle_failed_adds
+from handle_failed_adds import JobbingAround
 from warnings import warn
 
 
@@ -267,17 +267,18 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, bussiness_
 
 
 
-def job_function_core( job_name : str,  invite_msg_title: str, media, messages, group_id: str, cur):
-    
-    participants = list(cur.execute(text("select phone_number from participants where group_id = :gid"), {"gid" : group_id} ).fetchall())
-    
-    handle_failed_adds(cur, job_name, participants,  invite_msg_title, group_id)
-    send_stuff(media, messages, group_id)
+
+
+
+
+
+
+
     
 def job_function(job_name : str,  invite_msg_title: str, media, messages, group_id: str ):
     
     with get_cursor() as cur:
-        job_function_core( job_name,  invite_msg_title, media, messages, group_id, cur )
+        JobbingAround( job_name, cur ).run( invite_msg_title, media, messages, group_id )
 
 
 
