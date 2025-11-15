@@ -18,6 +18,8 @@ from datetime import datetime, timedelta
 
 from compute_spread_times import  BUSINESS_HOURS_DEFAULT, compute_spread_times
 from base_job_classes.new_group.new_group import NewGroupJob
+from base_job_classes.add_participants_in_batches import AddParticipantsInBatchesJob
+
 
 def pretty_print_trigger(trigger, use_logging=True):
     """
@@ -72,33 +74,6 @@ def create_group(req: WhatsappGroupCreate, cur) -> str:
 
 
 
-def add_participants_in_batches(group_id: str, participants: List[str]) -> None:
-    """
-    Add participants to an existing WhatsApp group in batches of 20.
-    (Logic unchanged.)
-    """
-    def get_batches(items, batch_size=20):
-        for i in range(0, len(items), batch_size):
-            yield items[i : i + batch_size]
-
-    for batch in get_batches(participants):
-        payload = {
-            "action": "add",
-            "participants": [_phone_number(p) for p in batch]
-        }
-
-        resp = evo_request_with_retries(
-            "group/updateParticipant",
-            payload,
-            params={"groupJid": group_id}
-        )
-
-        if resp.status_code == 400:
-            warn(f"⚠️ Warning: Bad request for group {group_id} — {resp.text}")
-        else:
-            resp.raise_for_status()
-
-        time.sleep(10)
 
 
 
@@ -128,9 +103,9 @@ def schedule_add_participants_in_batches(
 
     # ensure the function is a top-level callable (it is)
     job = CreateJob(
-        func=add_participants_in_batches,
+        func=AddParticipantsInBatchesJob.job,
         run_time=datetime.now(ZoneInfo(TIMEZONE)),
-        params={
+        other_args={
             "group_id": group_id,
             "participants": participants
         },
