@@ -42,3 +42,10 @@ class WhatsappNotConnected(DomainError):
     """Raised when WhatsApp is not connected via Evolution API."""
     def __init__(self, message: str = "WhatsApp is not connected via Evolution API", request: any = None, response: any = None):
         super().__init__(message, request=request, response=response)
+
+
+
+class CantRetrieveSchedulerJobError(DomainError):
+    """Raised when unable to retrieve a job from the scheduler."""
+    def __init__(self, message: str = "Cannot retrieve job from scheduler", request: any = None, response: any = None):
+        super().__init__(message, request=request, response=response)

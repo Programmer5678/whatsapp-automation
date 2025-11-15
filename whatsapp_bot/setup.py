@@ -160,6 +160,7 @@ def determine_new_status(job_id, event_code, current_status, use_logging=True):
         return JOBSTATUS["SUCCESS"]
 
     elif event_code == EVENT_JOB_ERROR:
+        log(f"Job {job_id} encountered an error.")
         return JOBSTATUS["FAILURE"]
     
     elif event_code == EVENT_JOB_MISSED:

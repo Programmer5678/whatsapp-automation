@@ -55,11 +55,10 @@ class CreateJob:
         batch_id: int,
         run_time: datetime,
         func,                    # callable to schedule
-        params: Optional[Dict[str, Any]] = None,
+        other_args: Dict[str, Any],
         coalesce: bool = True,
         misfire_grace_time: int = 600,
     ):
-        params = params or {}
         
 
         # 1) schedule APScheduler date job with id
@@ -68,7 +67,7 @@ class CreateJob:
             "date",
             run_date=run_time,
             id=id,
-            kwargs=params  ,
+            kwargs={ "job_name" : id , "other_args" : other_args}  ,
             coalesce=coalesce,
             misfire_grace_time=misfire_grace_time,
         )

@@ -19,6 +19,9 @@ from dynamic_group_changes import change_participants
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
 from mass_messanger import MassMessenger
+from domain_errors import CantRetrieveSchedulerJobError
+from base_job_classes.error_helloworld_job import ErrorHelloworldJob
+from base_job_classes.helloworld_job import HelloworldJob
 
 
 create_tables()
@@ -47,27 +50,6 @@ from timezone import TIMEZONE
     
 
     
-def write_helloworld():
-    
-    
-    
-    
-    print("waiting...")
-    import time
-    time.sleep(10)
-    print("done waiting")
-    
-    # from warnings import warn
-    # warn("Trying warn inside write_helloworld")
-    
-    print("Writing Hello world to helloworld.txt")
-    with open("helloworld.txt", "w") as f:
-        f.write("Hello world")
-        
-    # raise Exception("Job failed")
-    
-    
-    
     
     
 @app.post("/schedule_helloworld")
@@ -84,8 +66,8 @@ def schedule_helloworld(cur=Depends(get_cursor_dep)):
         cur=cur,
         scheduler=scheduler,
         id=job_id,
-        func=write_helloworld,
-        params={},
+        func=HelloworldJob.job,
+        other_args={},
         run_time=run_date,
         description=description,
         batch_id=batch_id,
@@ -95,50 +77,6 @@ def schedule_helloworld(cur=Depends(get_cursor_dep)):
 
 
 
-
-def add_issue_to_job_sql(cur, job_name, issue):
-    
-    """
-    Add an issue to a job in the job_information table.
-
-    Args:
-        cur: SQLAlchemy connection or cursor
-        job_name: ID or name of the job
-        issue: Python object representing the issue (will be JSON-serialized)
-    """
-    import json
-    cur.execute(
-        text("""
-            UPDATE job_information
-            SET issues =  array_append( issues, :issue_json )
-            WHERE id = :job_name
-        """),
-        {
-            "issue_json": json.dumps(issue),
-            "job_name": job_name
-        }
-    )
-
-
-
-# inhernet JobContext
-class JobbingAround:
-    
-    def __init__(self, job_name : str,  cur):
-        
-        self.cur = cur
-        self.job_name = job_name
-        
-
-    def run( self ):
-        add_issue_to_job_sql(self.cur, "error_job_1", {"info": "Issue 1"})
-        add_issue_to_job_sql(self.cur, "error_job_1", {"info": "Issue 2"})
-        
-        raise Exception("Hello world exception from scheduled job")
-    
-def raise_helloworld_exception():
-    with get_cursor() as cur:
-        JobbingAround( "error_job_1", cur ).run( )
     
 
 @app.post("/schedule_error_job")
@@ -153,11 +91,13 @@ def schedule_error_job(cur=Depends(get_cursor_dep)):
         cur=cur,
         scheduler=scheduler,
         id=job_id,
-        func=raise_helloworld_exception,
+        func=ErrorHelloworldJob.job,
         run_time=run_date,
         description=description,
         batch_id=batch_id,
-        misfire_grace_time=1
+        misfire_grace_time=1,
+        other_args={}
+        
     )
 
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
@@ -235,6 +175,12 @@ def _format_dt(dt: Optional[datetime]) -> Optional[str]:
         return str(dt)
 
 
+def scheduler_get_job_with_handling(job_id: str, scheduler: BackgroundScheduler):
+    try:
+        job = scheduler.get_job(job_id)
+    except Exception as e:
+        raise CantRetrieveSchedulerJobError(f"Error retrieving job {job_id} from scheduler. Possibly due to serialized function being moved") from e
+    return job
 
 def get_job_info(job_id: str, cur, scheduler: BackgroundScheduler) -> Optional[Dict[str, Any]]:
     """
@@ -265,7 +211,8 @@ def get_job_info(job_id: str, cur, scheduler: BackgroundScheduler) -> Optional[D
     job_info = {**result._mapping }
 
     # 2) Query APScheduler for the job details
-    job = scheduler.get_job(job_id)
+    
+    job = scheduler_get_job_with_handling(job_id, scheduler)
     if job:
         # APScheduler job info (just add these specific fields to job_info)
         trigger = job.trigger

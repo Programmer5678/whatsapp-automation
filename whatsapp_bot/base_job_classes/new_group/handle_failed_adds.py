@@ -1,83 +1,31 @@
-import json
+import logging
 from typing import List
 from warnings import warn
 
-from abc import ABC, abstractmethod
 from evolution_framework import _phone_number, get_group_invite_link, get_group_member_ids
 from evo_request import evo_request_with_retries
 import time
 from sqlalchemy import text
 
-from send_stuff_to_group import send_stuff
+from base_job_classes.base_job import BaseJob
 
 
-
-
-class JobInterface(ABC):
-    
- 
-    def __init__(self, cur, job_name: str):
-        self.cur = cur
-        self.job_name = job_name
-
-    @abstractmethod
-    def run(self, *args, **kwargs):
-        """All subclasses must implement this method"""
-        pass
-    
-    def add_issue_to_job_sql(self, issue):
-        """
-        Add an issue to a job in the job_information table.
-
-        Args:
-            issue: Python object representing the issue (will be JSON-serialized)
-        """
-        self.cur.execute(
-            text(
-                """
-                UPDATE job_information
-                SET issues =  array_append( issues, :issue_json )
-                WHERE id = :job_name
-                """
-            ),
-            {
-                "issue_json": json.dumps(issue),
-                "job_name": self.job_name,
-            },
-        )
+class HandleFailedAdds(BaseJob):
     
     
-    
-    
-
-class JobbingAround(JobInterface):
-    
-
-    def run(self, invite_msg_title: str, media, messages, group_id: str):
-        # call the core using instance state
-        self.job_function_core(invite_msg_title, media, messages, group_id)
-
-    def job_function_core(self, invite_msg_title: str, media, messages, group_id: str):
-
-        # keep original logic: call the instance helper and other funcs
-        HandleFailedAdds(self.cur, self.job_name).run( invite_msg_title, group_id )
-        send_stuff(media, messages, group_id)
-
-
-    
-
-
-class HandleFailedAdds(JobInterface):
     
     def __init__(self, cur, job_name: str):
         self.cur = cur
         self.job_name = job_name
         
-    def run(self, invite_msg_title: str, group_id: str) -> None:
+    def run(self, *,  invite_msg_title: str, group_id: str) -> None:
         self.handle_failed_adds(invite_msg_title, group_id)
         
     
-    def handle_failed_adds(self, invite_msg_title: str, group_id: str) -> None:
+    def handle_failed_adds(self, invite_msg_title: str, group_id: str, use_logging=False) -> None:
+        
+        log = logging.debug if use_logging else print
+        
         # use helpers that now are instance methods
         actual_members = set(get_group_member_ids(group_id))
         participants = list(
@@ -87,6 +35,7 @@ class HandleFailedAdds(JobInterface):
             ).fetchall()
         )
         failed_to_add = self.compute_failed_to_add(participants, actual_members)
+        log("failed_to_add=  ", failed_to_add)
 
         if failed_to_add:
             invite_link = get_group_invite_link(group_id)
@@ -95,12 +44,19 @@ class HandleFailedAdds(JobInterface):
 
     def compute_failed_to_add(self, participants: List[str], actual_members: set) -> List[str]:
         """Return list of normalized participants that were not added to the group."""
+        
         return [_phone_number(p) for p in participants if _phone_number(p) not in actual_members]
 
 
-    def send_invite_to_failed(self, failed_to_add: List[str], invite_link: str, invite_msg_title: str) -> None:
+    def send_invite_to_failed(self, failed_to_add: List[str], invite_link: str, invite_msg_title: str, use_logging=False) -> None:
+        
+        log = logging.debug if use_logging else print
+        
         message = f"{invite_msg_title}\n\n{invite_link}"
         for p in failed_to_add:
+            
+            log("sending text to ", p)
+            
             resp = evo_request_with_retries(
                 "message/sendText",
                 {
@@ -121,6 +77,7 @@ class HandleFailedAdds(JobInterface):
                     }
                 )
 
+                log(f"Error in job {self.job_name}: Participant {p} does not exist — skipping.")
                 warn(f"Error in job {self.job_name}: Participant {p} does not exist — skipping.")
             except Exception:
                 resp.raise_for_status()

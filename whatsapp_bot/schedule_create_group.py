@@ -1,25 +1,23 @@
 import time
-from typing import List, Optional
+from typing import List
 
 from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
-from send_stuff_to_group import send_stuff
 from classes import CreateJob, JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import  evo_request_with_retries
-from handle_failed_adds import JobbingAround
 from warnings import warn
 
 
 from sqlalchemy import text
 
-from setup import get_cursor
 
 import logging
 from datetime import datetime, timedelta
 
 from compute_spread_times import  BUSINESS_HOURS_DEFAULT, compute_spread_times
+from base_job_classes.new_group.new_group import NewGroupJob
 
 def pretty_print_trigger(trigger, use_logging=True):
     """
@@ -39,7 +37,6 @@ def pretty_print_trigger(trigger, use_logging=True):
         if expr_str != "*":
             log(f"   {field.name:<12} → {expr_str}")
     log("=========================\n")
-
 
 
 
@@ -102,6 +99,8 @@ def add_participants_in_batches(group_id: str, participants: List[str]) -> None:
             resp.raise_for_status()
 
         time.sleep(10)
+
+
 
 
 
@@ -273,16 +272,6 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, bussiness_
 
 
 
-
-    
-def job_function(job_name : str,  invite_msg_title: str, media, messages, group_id: str ):
-    
-    with get_cursor() as cur:
-        JobbingAround( job_name, cur ).run( invite_msg_title, media, messages, group_id )
-
-
-
-
 def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
     """
     Schedule given datetimes as one-shot 'date' jobs.
@@ -303,7 +292,7 @@ def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime
                   scheduler=job_info.scheduler,
                   cur=cur,
                   description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
-                  params={**job_info.params, "job_name" : job_full_id}
+                  other_args = job_info.params
                   )
 
         # job_info.scheduler.add_job(
@@ -329,7 +318,7 @@ def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: i
 
     job = JobInfo(
         scheduler=req.sched,
-        function=job_function,
+        function=NewGroupJob.job,
         params={
             "invite_msg_title": req.invite_msg_title,
             "media": req.media,
