@@ -18,10 +18,16 @@ from hakhana import hakhana
 from dynamic_group_changes import change_participants
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
-from mass_messanger import MassMessenger
 from domain_errors import CantRetrieveSchedulerJobError
 from base_job_classes.error_helloworld_job import ErrorHelloworldJob
 from base_job_classes.helloworld_job import HelloworldJob
+from mass_messages import send_mass_messages_service
+
+from fastapi import FastAPI, Depends
+from datetime import datetime, timedelta
+from classes import CreateJob
+from timezone import TIMEZONE
+    
 
 
 create_tables()
@@ -43,11 +49,7 @@ def test_sql_alchemy( cur = Depends(get_cursor_dep) ):
 
 
 
-from fastapi import FastAPI, Depends
-from datetime import datetime, timedelta
-from classes import CreateJob
-from timezone import TIMEZONE
-    
+
 
     
     
@@ -137,29 +139,64 @@ def delete_job(job_id: str, cur=Depends(get_cursor_dep)):
     return {"message": f"Job {job_id} deleted."}
 
 
-@app.delete("/delete_job_batch")
-def delete_job_batch(batch_id: str, cur=Depends(get_cursor_dep)):
-    
-    # Query for all job IDs with the given batch_id
-    job_ids = [ row[0] for row in cur.execute(
+from fastapi import FastAPI, Depends
+from sqlalchemy import text
+from setup import get_cursor_dep
+
+app = FastAPI()
+
+
+# --- Service function that does the actual deletion ---
+def delete_job_batch_service(batch_id: str, cur, scheduler):
+    """
+    Deletes all jobs in a batch and removes the batch from the DB.
+    Returns info about deleted jobs.
+    """
+    # Get all job IDs for this batch
+    job_ids = [row[0] for row in cur.execute(
         text("SELECT id FROM job_information WHERE batch_id = :batch_id"),
         {"batch_id": batch_id}
-    ).fetchall() ]
-    
+    ).fetchall()]
+
     deleted_jobs_info = []
-    
-    # Delete each job
+
+    # Delete each job and collect info
     for job_id in job_ids:
         del_job(job_id, cur)
-        
-        deleted_jobs_info.append( get_job_info(job_id, cur, scheduler) )
-        
+        deleted_jobs_info.append(get_job_info(job_id, cur, scheduler))
+
+    # Remove batch row
     cur.execute(
         text("DELETE FROM job_batch WHERE name = :batch_id"),
         {"batch_id": batch_id}
     )
-    
+
+    return deleted_jobs_info
+
+
+# --- Original endpoint, now a one-liner ---
+@app.delete("/delete_job_batch")
+def delete_job_batch(batch_id: str, cur=Depends(get_cursor_dep)):
+    deleted_jobs_info = delete_job_batch_service(batch_id, cur, scheduler)
     return {"message": f"All jobs in batch {batch_id} deleted.", "deleted_jobs_info": deleted_jobs_info}
+
+
+# --- New endpoint: delete and then recreate the batch ---
+@app.post("/delete_and_recreate_job_batch")
+def delete_and_recreate_job_batch(batch_id: str, cur=Depends(get_cursor_dep)):
+    # Delete batch
+    deleted_jobs_info = delete_job_batch_service(batch_id, cur, scheduler)
+
+    # Recreate batch in DB
+    cur.execute(
+        text("INSERT INTO job_batch (name) VALUES (:batch_id)"),
+        {"batch_id": batch_id}
+    )
+
+    return {
+        "message": f"Batch {batch_id} deleted and recreated.",
+        "deleted_jobs_info": deleted_jobs_info
+    }
 
 
 
@@ -315,103 +352,12 @@ def get_participants(req : GetParticipantsRequestModel):
     
     
     
-    
-    
-    
-    
-    
-    
-    
 
-
-
-
-
-def calculate_relevant_participants(cur, participants):
-    """
-    Returns only participants whose IDs are not marked success=TRUE in mass_messages.
-
-    Args:
-        cur: Active database cursor or SQLAlchemy connection.
-        participants: List of participant objects (must have 'id' attribute).
-
-    Returns:
-        List of participants still relevant for sending.
-    """
-    if not participants:
-        return []
-
-    ids = [p.id for p in participants]
-
-    res = cur.execute(
-        text("SELECT id FROM mass_messages WHERE id IN :ids AND success = TRUE").bindparams( bindparam("ids", expanding=True) )
-        , {"ids": ids}
-    ).fetchall()
-
-    already_success_ids = {row[0] for row in res }
-
-    return [p for p in participants if p.id not in already_success_ids]
-    
     
 @app.post("/sendMassMessages", status_code=status.HTTP_201_CREATED)
 def send_mass_messages(payload: SendMassMessagesRequestModel, cur = Depends(get_cursor_dep)):
 
-    validate_whatsapp_connection() 
-    
-    relevant_participants = calculate_relevant_participants(cur, payload.participants)
-
-    # --- Validate uniqueness of phone numbers ---
-    phones = [p.phone_number for p in relevant_participants]
-    if len(phones) != len(set(phones)):
-        raise ValueError("Duplicate phone numbers detected in participants.")
-    
-
-    # --- Insert participants into mass_messages table ---
-    for part in relevant_participants:
-        cur.execute(
-            text("""INSERT INTO mass_messages (id, phone_number, success) VALUES (:id, :phone_number, :success)
-                    ON CONFLICT (id) DO NOTHING
-                 """),
-            {"id": part.id, "phone_number": part.phone_number, "success": None}
-        )
- 
-    # --- Define callbacks ---
-    def on_success(phone_number: str):
-        cur.execute(
-            text("UPDATE mass_messages SET success = TRUE WHERE phone_number = :phone_number"),
-            {"phone_number": phone_number}
-        )
-        cur.commit()
-
-    def on_failure(phone_number: str, reason : str):
-        cur.execute(
-            text("UPDATE mass_messages SET success = FALSE, fail_reason = :reason WHERE phone_number = :phone_number" ),
-            {"phone_number": phone_number, "reason" : reason } 
-        )
-        cur.commit()
-
-    # --- Create messenger and send messages ---
-    messenger = MassMessenger(
-        numbers=phones,
-        message=payload.message,
-        on_success=on_success,
-        on_failure=on_failure,
-    )
-
-    messenger.send_all()
-    # no return value, status_code=201
-
-
-
-
-
-
-
-
-
-
-
-
+    return send_mass_messages_service(scheduler, cur, payload)
 
 
 

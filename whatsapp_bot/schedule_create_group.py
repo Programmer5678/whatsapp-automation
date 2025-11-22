@@ -303,7 +303,7 @@ def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: i
         job_batch_name=req.job_batch_name,
     )
 
-    run_times = compute_spread_times(start, deadline, runs)
+    run_times = compute_spread_times(start, deadline=deadline, min_diff=timedelta(minutes=1), runs=runs)
     schedule_times_as_date_jobs(cur, job, run_times, base_id="pre_deadline_job")
 
 

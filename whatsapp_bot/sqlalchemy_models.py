@@ -43,9 +43,11 @@ class MassMessages(Base):
     __tablename__ = "mass_messages"
 
     id =  Column(String(100), primary_key=True )
-    phone_number = Column(String(100), nullable=False)
+    phone_number = Column(String(100), nullable=False
+                        #   , unique = True # DEUBG
+                          )
     success = Column(Boolean, nullable=True, default=False)   
-    fail_reason = Column(String(255))
+    fail_reason = Column(JSON, nullable=True)
 
 class JobBatch(Base):
     __tablename__ = "job_batch"
