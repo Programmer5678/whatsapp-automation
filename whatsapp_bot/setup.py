@@ -1,23 +1,17 @@
-from contextlib import contextmanager
 from datetime import datetime
 import json
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+
 from sqlalchemy import text
 
 from job_status import JOBSTATUS
 from exception_to_json import exception_to_json
+from db.get_cursor import get_cursor
+from db.connection_str import connection_main
 
 
-
-connection_prefix = 'postgresql+psycopg://codya:030103@localhost:5432/'
-
-connection_main = connection_prefix + 'main'
-# connection_apischeduler = connection_prefix + 'lsd'
-connection_apischeduler = connection_main
 
 
 
@@ -251,7 +245,7 @@ def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
     log = logging.debug if use_logging else print
 
     jobstores = {
-        'default': SQLAlchemyJobStore(url=connection_apischeduler)
+        'default': SQLAlchemyJobStore(url=connection_main)
     }
 
     scheduler = BackgroundScheduler(jobstores=jobstores)
@@ -277,31 +271,20 @@ def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
 
 
 
-engine = create_engine(connection_main)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 
-# Dependency for FastAPI
-@contextmanager
-def get_cursor():
-    cur = SessionLocal()
-    try:
-        yield cur
-    finally:
-        cur.commit()
-        cur.close()
+
+
         
 
         
-def get_cursor_dep():
-    with get_cursor() as cur:
-        yield cur        
+      
         
         
 
         
-def create_tables():
+def create_tables(engine):
     
     from sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
 
