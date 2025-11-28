@@ -54,7 +54,7 @@ def create_group(req: WhatsappGroupCreate, cur) -> str:
     first_participants_to_add = req.participants[:50]
     rest_of_participants = req.participants[50:]
     
-    rest_of_participants = req.participants # DEBUG
+    # rest_of_participants = req.participants # DEBUG
 
     payload = {
         "subject": req.name,

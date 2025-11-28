@@ -292,9 +292,14 @@ def get_cursor():
         cur.commit()
         cur.close()
         
+
+        
 def get_cursor_dep():
     with get_cursor() as cur:
-        yield cur
+        yield cur        
+        
+        
+
         
 def create_tables():
     
@@ -319,3 +324,8 @@ logging.basicConfig(
 )
 
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+
+
+
+
+

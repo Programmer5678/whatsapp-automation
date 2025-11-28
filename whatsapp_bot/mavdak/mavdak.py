@@ -36,7 +36,7 @@ def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, c
     
 
     when_to_send = datetime.combine(req.base_date, TIME_TO_SEND_MORNING_MESSAGES, tzinfo=ZoneInfo(TIMEZONE))
-    when_to_send = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)  # DEBUG
+    # when_to_send = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)  # DEBUG
     
     # Step 2 — Schedule the morning messages
     mavdak_end(mavdak_group_id, when_to_send, sched, job_batch_name, cur)
