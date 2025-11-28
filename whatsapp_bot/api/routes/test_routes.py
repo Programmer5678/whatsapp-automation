@@ -8,11 +8,11 @@ from zoneinfo import ZoneInfo
 
 from setup import get_cursor_dep
 from classes import CreateJob
-from base_job_classes.error_helloworld_job import ErrorHelloworldJob
+from whatsapp_bot.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
 from timezone import TIMEZONE
 from connection import validate_whatsapp_connection, is_whatsapp_connected
 from api.dependencies import get_scheduler
-from base_job_classes.helloworld_job import HelloworldJob
+from whatsapp_bot.base_job_classes.base_job_subclasses.helloworld_job import HelloworldJob
 
 
 test_router = APIRouter()

@@ -1,10 +1,15 @@
 from fastapi import FastAPI
+from sqlalchemy import create_engine
+
 from setup import create_tables, setup_scheduler
 
 from routes.group_creates import group_creates_router
 from routes.job import job_router
 from routes.test_routes import test_router
 from routes.group_participants import participants_router
+
+from db.connection_str import connection_main
+
 
 
 
@@ -19,6 +24,7 @@ for router in [group_creates_router, job_router, test_router, participants_route
 def startup_event():
     create_tables()
     app.state.scheduler = setup_scheduler()
+    app.state.engine = create_engine(connection_main)
 
 
 @app.on_event("shutdown")

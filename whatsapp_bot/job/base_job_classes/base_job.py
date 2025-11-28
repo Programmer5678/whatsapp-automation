@@ -16,6 +16,13 @@ class BaseJob(ABC):
       3. Calls the job-specific `run` method with the provided arguments.
 
     This class also provides a helper method to record issues in the database.
+    
+    Usage:
+    
+    Subclasses implement the run
+    Subclass.job(...) --> this calls the job-specific run function. When Subclass.run needs to raise issues it calls self.add_issue_to_job_sql 
+    which inherited by BaseJob
+    
     """
 
     def __init__(self, cur, job_name: str):

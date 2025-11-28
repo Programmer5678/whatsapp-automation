@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from timezone import TIMEZONE
 from classes import CreateJob
-from base_job_classes.mavdak_end_job import MavdakEndJob
+from whatsapp_bot.base_job_classes.base_job_subclasses.mavdak_end_job import MavdakEndJob
 
 
 def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler, job_batch_name : str, cur) -> None:
