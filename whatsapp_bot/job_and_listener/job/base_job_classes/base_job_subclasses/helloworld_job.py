@@ -1,4 +1,4 @@
-from job.base_job_classes.base_job import BaseJob
+from job_and_listener.job.base_job_classes.base_job import BaseJob
 
 class HelloworldJob(BaseJob):
 
@@ -7,7 +7,7 @@ class HelloworldJob(BaseJob):
         
         print(f"waiting in job {self.job_name} ...")
         import time
-        time.sleep(10)
+        time.sleep(60)
         print("done waiting")
         
         print("Writing Hello world to helloworld.txt")

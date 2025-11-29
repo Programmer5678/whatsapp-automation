@@ -23,68 +23,6 @@ from db.connection_str import connection_main
 
 
 
-from apscheduler.events import (
-    EVENT_SCHEDULER_STARTED,
-    EVENT_SCHEDULER_SHUTDOWN,
-    EVENT_SCHEDULER_PAUSED,
-    EVENT_SCHEDULER_RESUMED,
-    EVENT_EXECUTOR_ADDED,
-    EVENT_EXECUTOR_REMOVED,
-    EVENT_JOBSTORE_ADDED,
-    EVENT_JOBSTORE_REMOVED,
-    EVENT_JOB_ADDED,
-    EVENT_JOB_REMOVED,
-    EVENT_JOB_MODIFIED,
-    EVENT_JOB_SUBMITTED,
-    EVENT_JOB_MAX_INSTANCES,
-    EVENT_JOB_EXECUTED,
-    EVENT_JOB_ERROR,
-    EVENT_JOB_MISSED,
-    JobEvent,
-    JobSubmissionEvent,
-    JobExecutionEvent
-)
-
-EVENT_NAMES = {
-    EVENT_SCHEDULER_STARTED: "SCHEDULER_STARTED",
-    EVENT_SCHEDULER_SHUTDOWN: "SCHEDULER_SHUTDOWN",
-    EVENT_SCHEDULER_PAUSED: "SCHEDULER_PAUSED",
-    EVENT_SCHEDULER_RESUMED: "SCHEDULER_RESUMED",
-
-    EVENT_EXECUTOR_ADDED: "EXECUTOR_ADDED",
-    EVENT_EXECUTOR_REMOVED: "EXECUTOR_REMOVED",
-
-    EVENT_JOBSTORE_ADDED: "JOBSTORE_ADDED",
-    EVENT_JOBSTORE_REMOVED: "JOBSTORE_REMOVED",
-
-    EVENT_JOB_ADDED: "JOB_ADDED",
-    EVENT_JOB_REMOVED: "JOB_REMOVED",
-    EVENT_JOB_MODIFIED: "JOB_MODIFIED",
-    EVENT_JOB_SUBMITTED: "JOB_SUBMITTED",
-    EVENT_JOB_MAX_INSTANCES: "JOB_MAX_INSTANCES",
-    EVENT_JOB_EXECUTED: "JOB_EXECUTED",
-    EVENT_JOB_ERROR: "JOB_ERROR",
-    EVENT_JOB_MISSED: "JOB_MISSED",
-}
-
-
-def pretty_event(event):
-    lines = []
-    lines.append(f"Event: {EVENT_NAMES.get(event.code, event.code)}")
-
-    if hasattr(event, "job_id"):
-        lines.append(f"job_id={event.job_id}")
-
-    if hasattr(event, "scheduled_run_time"):
-        lines.append(f"scheduled_run_time={event.scheduled_run_time}")
-
-    if isinstance(event, JobExecutionEvent):
-        if event.exception:
-            lines.append(f"exception={event.exception}")
-        else:
-            lines.append(f"retval={event.retval}")
-
-    return "\n".join(lines)
 
 
 
@@ -117,156 +55,75 @@ def pretty_event(event):
 
 
 
-def check_deleted_status(job_id, event_code, use_logging=True):
-    """Check if the job is DELETED and raise an exception if event is not JOB_REMOVED."""
-    log = logging.debug if use_logging else print
+
     
-    with get_cursor() as cur:
-        current_status = cur.execute(
-            text("SELECT status FROM job_information WHERE id = :job_id"),
-            {"job_id": job_id}
-        ).first()
-        
-        if current_status:
-            current_status = current_status[0]
-            if current_status == JOBSTATUS["DELETED"] and event_code != EVENT_JOB_REMOVED:
-                log(f"Cannot update job {job_id} because it is DELETED and the event is not JOB_REMOVED.")
-                raise Exception(f"Cannot update job {job_id} because it is DELETED and the event is not JOB_REMOVED.")
-        else:
-            log(f"Job {job_id} not found in the database.")
-            return None  # Return None to indicate job wasn't found
     
-    return current_status
-
-
-def determine_new_status(job_id, event_code, current_status, use_logging=True):
-    """Determine the new status based on the event code."""
-    log = logging.debug if use_logging else print
-
-    if event_code == EVENT_JOB_SUBMITTED:
-        if current_status == JOBSTATUS["PENDING"]:
-            return JOBSTATUS["RUNNING"]
-        else:
-            log(f"Job {job_id} is not in PENDING state, no update needed.")
-            return None  # Don't update if not PENDING
-
-    elif event_code == EVENT_JOB_EXECUTED:
-        return JOBSTATUS["SUCCESS"]
-
-    elif event_code == EVENT_JOB_ERROR:
-        log(f"Job {job_id} encountered an error.")
-        return JOBSTATUS["FAILURE"]
     
-    elif event_code == EVENT_JOB_MISSED:
-        return JOBSTATUS["MISSED"]
-
-    else:
-        log(f"Unknown event code: {event_code}. Ignoring event for job {job_id}.")
-        return None  # Ignore other events
+    
+    
 
 
-def update_job_status_in_db(job_id, status, use_logging=True):
-    """Log and update the job status in the database."""
-    log = logging.debug if use_logging else print
 
-    log(f"Updating job {job_id} status to {status} in DB")
 
-    with get_cursor() as cur:
-        cur.execute(
-            text("UPDATE job_information SET status = :status WHERE id = :job_id"),
-            {"status": status, "job_id": job_id}
+
+
+import logging
+from typing import Optional, Callable, Any
+
+from job_and_listener.listener import listener
+
+def _setup_scheduler_logger(use_logging: bool = True, filename: str = "app.log") -> None:
+    """
+    Configure logging the same way your original code did.
+    If use_logging is False we don't call basicConfig (so you can fall back to print).
+    """
+    if use_logging:
+        logging.basicConfig(
+            filename=filename,
+            level=logging.DEBUG,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         )
+        logging.getLogger("apscheduler").setLevel(logging.DEBUG)
+    # if use_logging is False: we intentionally do not configure logging so the code can use print
 
-
-
-# e is a serialized exception
-def add_exception_to_job_sql(cur, job_name, e):
+def _setup_scheduler_core(connection_url: str, listener_fn: Optional[Callable[[Any], None]] = None) -> BackgroundScheduler:
     """
-    Add an issue to a job in the job_information table.
-
-    Args:
-        cur: SQLAlchemy connection or cursor
-        job_name: ID or name of the job
-        issue: Python object representing the issue (will be JSON-serialized)
+    Build (but do not start) the BackgroundScheduler.
+    Mirrors your original jobstores/listener setup.
     """
-    cur.execute(
-        text("""
-            UPDATE job_information
-            SET exception = :exception_json
-            WHERE id = :job_name
-        """),
-        {
-            "exception_json": json.dumps(e),
-            "job_name": job_name
-        }
-    )
-
-def listener(event):
-    
-    if hasattr(event, "job_id") is False:
-        return  # Ignore events without job_id
-    
-    job_id = event.job_id
-
-    # Check if job is DELETED and raise an exception if event is not JOB_REMOVED
-    current_status = check_deleted_status(job_id, event.code)
-    if current_status is None:
-        return  # Exit if job wasn't found or is DELETED with incorrect event
-
-    # Determine the new status based on the event code
-    status = determine_new_status(job_id, event.code, current_status)
-    if status is None:
-        return  # Exit if no status update is needed
-    
-    if status == JOBSTATUS["FAILURE"]:
-        
-        with get_cursor() as cur:
-            add_exception_to_job_sql( cur, event.job_id, exception_to_json(event.exception) )
-
-    # Update the job status in the database
-    update_job_status_in_db(job_id, status)
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
-def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
-
-
-    log = logging.debug if use_logging else print
-
     jobstores = {
-        'default': SQLAlchemyJobStore(url=connection_main)
+        "default": SQLAlchemyJobStore(url=connection_url)
     }
 
     scheduler = BackgroundScheduler(jobstores=jobstores)
-    
 
+    if listener_fn is not None:
+        scheduler.add_listener(listener_fn)
 
-    scheduler.add_listener(
-        listener
-    )
-    
-    # with get_cursor() as cur:
-    #     print("hi")
-    #     print(cur.execute(text("SELECT * FROM job_information")).fetchall())
-        
-    # scheduler.add_listener(lambda event: print(pretty_event(event)))
-    
-    scheduler.start()
     return scheduler
 
+def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
+    """
+    Public function that:
+      1) sets up logging (if requested)
+      2) builds scheduler core
+      3) starts the scheduler
+      4) returns the running scheduler
+    Matches your original behaviour but with clearer internal separation.
+    """
+    # preserve your original log variable (debug or print)
+    log = logging.debug if use_logging else print
 
+    # 1) configure logging
+    _setup_scheduler_logger(use_logging=use_logging)
 
+    # 2) build scheduler (uses the module/global connection_main & listener like original)
+    scheduler = _setup_scheduler_core(connection_main, listener)
+
+    # 3) start scheduler (now that logging is configured)
+    scheduler.start()
+    log("Scheduler started")
+    return scheduler
 
 
 
@@ -298,15 +155,7 @@ def create_tables(engine):
 
 
 
-import logging
 
-logging.basicConfig(
-    filename='app.log',        # path to your log file
-    level=logging.DEBUG,       # minimum level to record
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-)
-
-logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
 
 

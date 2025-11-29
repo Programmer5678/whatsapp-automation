@@ -17,8 +17,8 @@ import logging
 from datetime import datetime, timedelta
 
 from compute_spread_times import  BUSINESS_HOURS_DEFAULT, compute_spread_times
-from job.base_job_classes.base_job_subclasses.add_participants_in_batches import AddParticipantsInBatchesJob
-from job.base_job_classes.base_job_subclasses.new_group.new_group import NewGroupJob
+from job_and_listener.job.base_job_classes.base_job_subclasses.add_participants_in_batches import AddParticipantsInBatchesJob
+from job_and_listener.job.base_job_classes.base_job_subclasses.new_group.new_group import NewGroupJob
 
 
 def pretty_print_trigger(trigger, use_logging=True):
