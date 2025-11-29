@@ -10,7 +10,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from api.dependencies import get_cursor_dep
 from api.dependencies import get_scheduler
 
-from job.service import (
+from job_and_listener.job.service import (
     delete_job_service,
     delete_job_batch_service,
     delete_and_recreate_job_batch_service,

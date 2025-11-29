@@ -3,7 +3,7 @@
 
 import logging
 from typing import List
-from job.base_job_classes.base_job import BaseJob
+from job_and_listener.job.base_job_classes.base_job import BaseJob
 from send_stuff_to_group import send_messages_to_group
 
 

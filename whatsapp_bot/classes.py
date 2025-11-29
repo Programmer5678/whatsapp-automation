@@ -117,11 +117,11 @@ class CreateJob:
             
             
         
-        DELETED_JOB_STATUS = JOBSTATUS["DELETED"]
+        # DELETED_JOB_STATUS = JOBSTATUS["DELETED"]
         
-        # Remove job information from database
-        delete_sql = text(f"UPDATE job_information SET status = '{DELETED_JOB_STATUS}' WHERE id = :job_id")
-        cur.execute(delete_sql, {"job_id": job_id})
+        # # Remove job information from database
+        # delete_sql = text(f"UPDATE job_information SET status = '{DELETED_JOB_STATUS}' WHERE id = :job_id")
+        # cur.execute(delete_sql, {"job_id": job_id})
         
 
         
