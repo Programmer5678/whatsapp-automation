@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import text
 
-from setup import get_cursor_dep
+from api.dependencies import get_cursor_dep
 from domain_errors import CantRetrieveSchedulerJobError
 from classes import CreateJob
 

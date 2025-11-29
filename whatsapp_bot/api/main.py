@@ -22,9 +22,10 @@ for router in [group_creates_router, job_router, test_router, participants_route
 
 @app.on_event("startup")
 def startup_event():
-    create_tables()
     app.state.scheduler = setup_scheduler()
     app.state.engine = create_engine(connection_main)
+    create_tables( engine=app.state.engine  )
+
 
 
 @app.on_event("shutdown")

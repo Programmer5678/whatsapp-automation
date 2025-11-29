@@ -7,7 +7,7 @@ from evo_request import evo_request_with_retries
 import time
 from sqlalchemy import text
 
-from base_job_classes.base_job import BaseJob
+from job.base_job_classes.base_job import BaseJob
 
 
 class HandleFailedAdds(BaseJob):

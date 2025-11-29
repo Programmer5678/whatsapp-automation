@@ -2,9 +2,9 @@ import logging
 import time
 from typing import List
 from warnings import warn
-from base_job_classes.base_job import BaseJob
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
+from job.base_job_classes.base_job import BaseJob
 
 
 

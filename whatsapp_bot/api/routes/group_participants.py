@@ -3,7 +3,7 @@ from sqlalchemy import text  # optional if you plan to run SQL here later
 
 from models import ChangeParticipantsRequestModel, GetParticipantsRequestModel
 from connection import validate_whatsapp_connection
-from setup import get_cursor_dep
+from api.dependencies import get_cursor_dep
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
 from dynamic_group_changes import change_participants

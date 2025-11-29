@@ -1,7 +1,6 @@
 from send_stuff_to_group import send_stuff
-
-from base_job_classes.base_job import BaseJob
-from base_job_classes.new_group.handle_failed_adds import HandleFailedAdds
+from job.base_job_classes.base_job import BaseJob
+from job.base_job_classes.base_job_subclasses.new_group.handle_failed_adds import HandleFailedAdds
     
 
 class NewGroupJob(BaseJob):

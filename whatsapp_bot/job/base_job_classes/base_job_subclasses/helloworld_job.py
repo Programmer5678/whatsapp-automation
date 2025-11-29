@@ -1,5 +1,4 @@
-from base_job_classes.base_job import BaseJob
-
+from job.base_job_classes.base_job import BaseJob
 
 class HelloworldJob(BaseJob):
 

@@ -9,11 +9,10 @@ from fastapi import FastAPI, status
 from models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
 from connection import validate_whatsapp_connection
-from setup import  get_cursor_dep
+from api.dependencies import  get_cursor_dep, get_scheduler
 from raf0 import raf0
 
 from hakhana import hakhana
-from api.dependencies import get_scheduler
 
 
 group_creates_router = APIRouter(
