@@ -6,13 +6,13 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from setup import get_cursor_dep
+from api.dependencies import get_cursor_dep
 from classes import CreateJob
-from whatsapp_bot.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
+from  job.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
 from timezone import TIMEZONE
 from connection import validate_whatsapp_connection, is_whatsapp_connected
 from api.dependencies import get_scheduler
-from whatsapp_bot.base_job_classes.base_job_subclasses.helloworld_job import HelloworldJob
+from  job.base_job_classes.base_job_subclasses.helloworld_job import HelloworldJob
 
 
 test_router = APIRouter()

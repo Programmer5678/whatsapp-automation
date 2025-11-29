@@ -7,7 +7,7 @@ Jobs are handled using APScheduler and job metadata is stored in another SQL dat
 from fastapi import APIRouter, Depends, status
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from setup import get_cursor_dep
+from api.dependencies import get_cursor_dep
 from api.dependencies import get_scheduler
 
 from job.service import (

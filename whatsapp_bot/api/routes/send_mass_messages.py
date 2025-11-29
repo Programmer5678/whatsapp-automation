@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import text
 
-from setup import get_cursor_dep
+from api.dependencies import get_cursor_dep
 from mass_messages import send_mass_messages_service
 from models import SendMassMessagesRequestModel
 from setup import get_scheduler
