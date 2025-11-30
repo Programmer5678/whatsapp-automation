@@ -47,22 +47,32 @@ class JobSchedule:
     misfire_grace_time: int = 600
 
 
-def schedule_job(scheduler: BackgroundScheduler, action: JobAction, metadata: JobMetadata, schedule: JobSchedule):
+@dataclass
+class JobToCreate:
+    metadata: JobMetadata
+    action: JobAction
+    schedule: JobSchedule
+
+
+def schedule_job(scheduler: BackgroundScheduler, job: JobToCreate) -> None:
     """
     Schedule a job with APScheduler.
     """
     scheduler.add_job(
-        action.func,
+        job.action.func,
         "date",
-        run_date=schedule.run_time,
-        id=metadata.id,
-        kwargs={"job_name": metadata.id, "other_args": action.other_args},
-        coalesce=schedule.coalesce,
-        misfire_grace_time=schedule.misfire_grace_time,
+        run_date=job.schedule.run_time,
+        id=job.metadata.id,
+        kwargs={
+            "job_name": job.metadata.id,
+            "other_args": job.action.other_args,
+        },
+        coalesce=job.schedule.coalesce,
+        misfire_grace_time=job.schedule.misfire_grace_time,
     )
 
 
-def insert_job_row(cur, metadata: JobMetadata):
+def insert_job_row(cur, metadata: JobMetadata) -> None:
     """
     Insert a row in the job_information table.
     """
@@ -72,16 +82,21 @@ def insert_job_row(cur, metadata: JobMetadata):
     """)
     cur.execute(
         insert_sql,
-        {"id": metadata.id, "description": metadata.description, "job_id": metadata.id, "batch_id": metadata.batch_id}
+        {
+            "id": metadata.id,
+            "description": metadata.description,
+            "job_id": metadata.id,
+            "batch_id": metadata.batch_id,
+        },
     )
 
 
-def create_job(cur, scheduler: BackgroundScheduler, metadata: JobMetadata, action: JobAction, schedule: JobSchedule):
+def create_job(cur, scheduler: BackgroundScheduler, job: JobToCreate) -> None:
     """
-    High-level helper to create a scheduled job and insert DB row.
+    High-level helper that schedules a job and creates its DB row.
     """
-    schedule_job(scheduler, action, metadata, schedule)
-    insert_job_row(cur, metadata)
+    schedule_job(scheduler, job)
+    insert_job_row(cur, job.metadata)
             
             
     

@@ -2,7 +2,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 from timezone import TIMEZONE
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
+from job_and_listener.job.core import JobToCreate, create_job, JobMetadata, JobAction, JobSchedule
 from job_and_listener.job.base_job_classes.base_job_subclasses.mavdak_end_job import MavdakEndJob
 
 
@@ -23,6 +23,7 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
     )
     schedule = JobSchedule(run_time=when_to_send)
 
-    create_job(cur, sched, metadata, action, schedule)
+    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    create_job(cur, sched, job)
     
     print(f"Scheduled messages for {when_to_send}")

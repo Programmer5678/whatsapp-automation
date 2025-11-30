@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from api.dependencies import get_cursor_dep
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
+from job_and_listener.job.core import JobToCreate, create_job, JobMetadata, JobAction, JobSchedule
 from job_and_listener.job.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
 from timezone import TIMEZONE
 from connection import validate_whatsapp_connection, is_whatsapp_connected
@@ -44,7 +44,8 @@ def schedule_error_job(
     )
     action = JobAction(func=ErrorHelloworldJob.job, other_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
-    create_job(cur, scheduler, metadata, action, schedule)
+    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    create_job(cur, scheduler, job)
 
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
 
@@ -74,6 +75,7 @@ def schedule_helloworld(
     metadata = JobMetadata(id=job_id, description=description, batch_id=batch_id)
     action = JobAction(func=HelloworldJob.job, other_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
-    create_job(cur, scheduler, metadata, action, schedule)
+    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    create_job(cur, scheduler, job)
 
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}

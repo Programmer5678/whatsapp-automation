@@ -4,7 +4,7 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
+from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule, JobToCreate
 from classes import JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import  evo_request_with_retries
@@ -116,7 +116,10 @@ def schedule_add_participants_in_batches(
         },
     )
     schedule = JobSchedule(run_time=datetime.now(ZoneInfo(TIMEZONE)))
-    create_job(cur, sched, metadata, action, schedule)
+    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    
+    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    create_job(cur, sched, job)
 
     return full_job_id
 
@@ -249,41 +252,65 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, bussiness_
 
 
 
-def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
-    """
-    Schedule given datetimes as one-shot 'date' jobs.
-    """
+# def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime], base_id: str = "pre_deadline_job"):
+#     """
+#     Schedule given datetimes as one-shot 'date' jobs.
+#     """
     
-    # print(f"Scheduling {len(run_times)} jobs for {job_info.job_batch_name}...")
+#     # print(f"Scheduling {len(run_times)} jobs for {job_info.job_batch_name}...")
     
-    for idx, run_time in enumerate(run_times):
-        job_full_id = f"{job_info.job_batch_name}/{base_id}/{idx}"
-        print(f"Scheduling {job_full_id} -> {run_time.isoformat()}")
+#     for idx, run_time in enumerate(run_times):
+#         job_full_id = f"{job_info.job_batch_name}/{base_id}/{idx}"
+#         print(f"Scheduling {job_full_id} -> {run_time.isoformat()}")
         
-        # print(f"Scheduling job {job_id} at {run_time}")
+#         # print(f"Scheduling job {job_id} at {run_time}")
         
-        metadata = JobMetadata(
-            id=job_full_id,
-            description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
-            batch_id=job_info.job_batch_name,
-        )
-        action = JobAction(
-            func=job_info.function,
-            other_args=job_info.params,
-        )
-        schedule = JobSchedule(run_time=run_time)
-        create_job(cur, job_info.scheduler, metadata, action, schedule)
+#         metadata = JobMetadata(
+#             id=job_full_id,
+#             description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
+#             batch_id=job_info.job_batch_name,
+#         )
+#         action = JobAction(
+#             func=job_info.function,
+#             other_args=job_info.params,
+#         )
+#         schedule = JobSchedule(run_time=run_time)
+#         job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+        
+#         create_job(cur, job_info.scheduler, job)
 
-        # job_info.scheduler.add_job(
-        #     job_info.function,
-        #     "date",
-        #     run_date=run_time,
-        #     id=job_full_id,
-        #     kwargs=job_info.params,
-        #     coalesce=True,
-        #     misfire_grace_time=600,
-        # )
+#         # job_info.scheduler.add_job(
+#         #     job_info.function,
+#         #     "date",
+#         #     run_date=run_time,
+#         #     id=job_full_id,
+#         #     kwargs=job_info.params,
+#         #     coalesce=True,
+#         #     misfire_grace_time=600,
+#         # )
 
+
+# @dataclass
+# class JobInfo:
+#     scheduler: BackgroundScheduler
+#     function: Callable
+#     params: dict = field(default_factory=dict)  # default to empty dict if not provided
+#     job_batch_name : str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
+
+def get_job_metadatas(description, batch_id, num_jobs):
+    
+    return [ JobMetadata(id=f"{batch_id}/pre_deadline_job/{idx}" , description=description, batch_id=batch_id)  for idx in range(num_jobs)]
+
+def get_job_actions(func, other_args, num_jobs):
+    return [
+        JobAction(
+            func=func,
+            other_args=other_args,
+        )
+        
+        for _ in range(num_jobs)
+    ]
+    
 
 def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: int = 3, minutes_before_start=1 ) -> None:
     """
@@ -295,20 +322,26 @@ def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: i
     deadline = req.deadline.astimezone(ZoneInfo(TIMEZONE))
 
 
-    job = JobInfo(
-        scheduler=req.sched,
-        function=NewGroupJob.job,
-        params={
+
+    metadatas = get_job_metadatas(description="Send messages to group, and attempt to add participants(send them link)"
+                                  , batch_id=req.job_batch_name
+                                  , num_jobs = len(runs) )
+    
+    actions = get_job_actions(func=NewGroupJob.job, other_args={
             "invite_msg_title": req.invite_msg_title,
             "media": req.media,
             "messages": req.messages,
             "group_id": group_id,
-        },
-        job_batch_name=req.job_batch_name,
-    )
-
+        })
+    
     run_times = compute_spread_times(start, deadline=deadline, min_diff=timedelta(minutes=1), runs=runs)
-    schedule_times_as_date_jobs(cur, job, run_times, base_id="pre_deadline_job")
+    schedules = [ JobSchedule(run_time=run_time) for run_time in run_times]
+    
+    jobs = [ JobToCreate(metadata=metadata, action=action, schedule=schedule) for metadata,action, schedule in zip(metadatas, actions, schedules) ]
+    
+    for j in jobs:
+        create_job(cur, req.scheduler, j)
+    
 
 
 
