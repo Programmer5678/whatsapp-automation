@@ -95,12 +95,11 @@ def ensure_status_isnt_deleted(job_id, job_status, use_logging=True):
     Currently enforces that DELETED jobs can only receive JOB_REMOVED events.
     """
     
-    pass 
 
-    # log = logging.debug if use_logging else print
+    log = logging.debug if use_logging else print
 
-    # if job_status == JOBSTATUS["DELETED"] :
-    #     raise Exception(f"Cannot update job {job_id}: DELETED jobs shouldnt be recieving events as they dont exist in apscheduler.")
+    if job_status == JOBSTATUS["DELETED"] :
+        raise Exception(f"Cannot update job {job_id}: DELETED jobs shouldnt be recieving events as they dont exist in apscheduler.")
 
 
 
@@ -119,7 +118,6 @@ def determine_new_status(job_id, event_code, current_status, use_logging=False):
     - EVENT_JOB_EXECUTED: Sets status to SUCCESS.
     - EVENT_JOB_ERROR: Sets status to FAILURE.
     - EVENT_JOB_MISSED: Sets status to MISSED.
-    - pending events can also be removed - set to DELETED on remove 
     - Any other event codes: Returns None and logs.
 
     This function ensures that job status transitions occur safely and only when appropriate,
@@ -147,11 +145,11 @@ def determine_new_status(job_id, event_code, current_status, use_logging=False):
     elif event_code == EVENT_JOB_MISSED:
         return JOBSTATUS["MISSED"]
     
-    elif event_code == EVENT_JOB_REMOVED and current_status == JOBSTATUS["PENDING"] : # Can only delete pending job. # WATCH OUT - RACE CONDITIONS
-        log("Fuuuuck. we got a job removed after pending. Why didnt we get running first? makes no sense ") #DEBUG
-        import time
-        time.sleep(10)
-        return JOBSTATUS["DELETED"]
+    # elif event_code == EVENT_JOB_REMOVED and current_status == JOBSTATUS["PENDING"] : # Can only delete pending job. # WATCH OUT - RACE CONDITIONS
+    #     log("Fuuuuck. we got a job removed after pending. Why didnt we get running first? makes no sense ") #DEBUG
+    #     import time
+    #     time.sleep(10)
+    #     return JOBSTATUS["DELETED"]
         
 
     else:

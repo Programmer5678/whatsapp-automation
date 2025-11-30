@@ -9,11 +9,11 @@ from typing import Dict, Any, List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import text
 
-from api.dependencies import get_cursor_dep
 from domain_errors import CantRetrieveSchedulerJobError
 import logging
 
 from dataclasses import dataclass
+
 
 
 
@@ -88,26 +88,6 @@ def create_job(cur, scheduler: BackgroundScheduler, metadata: JobMetadata, actio
             
             
 
-def delete_job(scheduler: BackgroundScheduler, cur, job_id: str):
-    """
-    Deletes a scheduled job from both the scheduler and the database.
-    
-    Parameters:
-        scheduler (BackgroundScheduler): The scheduler instance.
-        cur: The database cursor or SQLAlchemy connection (for DB row removal if needed).
-        job_id (str): The ID of the job to delete.
-    """
-
-    log = logging.debug if False else print
-
-    # Check if the job exists in the scheduler
-    job = scheduler.get_job(job_id)
-
-    if job:  # Job exists
-        log("Job found in scheduler.")
-        # Remove job from scheduler
-        scheduler.remove_job(job_id)
-        log(f"Job {job_id} removed from scheduler.")
             
 
 
@@ -145,9 +125,6 @@ def delete_job(scheduler: BackgroundScheduler, cur, job_id: str):
 
 
 
-def del_job(job_id: str, cur, scheduler: BackgroundScheduler):
-    # Delete job from scheduler and update DB
-    delete_job(scheduler, cur, job_id)
 
 
 def _format_dt(dt: Optional[datetime]) -> Optional[str]:
@@ -271,31 +248,7 @@ def get_jobs_in_dir(dir_prefix: str, cur, scheduler: BackgroundScheduler) -> Dic
     }
 
 
-def delete_job_batch_service(batch_id: str, cur, scheduler: BackgroundScheduler):
-    """
-    Deletes all jobs in a batch and removes the batch from the DB.
-    Returns info about deleted jobs.
-    """
-    # Get all job IDs for this batch
-    job_ids = [row[0] for row in cur.execute(
-        text("SELECT id FROM job_information WHERE batch_id = :batch_id"),
-        {"batch_id": batch_id}
-    ).fetchall()]
 
-    deleted_jobs_info = []
-
-    # Delete each job and collect info
-    for job_id in job_ids:
-        del_job(job_id, cur, scheduler)
-        deleted_jobs_info.append(get_job_info(job_id, cur, scheduler))
-
-    # Remove batch row
-    cur.execute(
-        text("DELETE FROM job_batch WHERE name = :batch_id"),
-        {"batch_id": batch_id}
-    )
-
-    return deleted_jobs_info
 
 
 
