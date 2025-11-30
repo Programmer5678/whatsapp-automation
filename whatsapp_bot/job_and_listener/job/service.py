@@ -10,7 +10,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import text
 
 from job_and_listener.job.core import (
-    del_job,
     get_job_info as core_get_job_info,
     get_jobs_in_dir as core_get_jobs_in_dir,
 )
