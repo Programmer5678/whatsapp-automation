@@ -15,15 +15,51 @@ from job_and_listener.job.core import (
     get_jobs_in_dir as core_get_jobs_in_dir,
 )
 
+from db.get_cursor import get_cursor
+
+
+
 # --- Public service functions used by the router ---
 
+JOBSTATUS = {"DELETED" : "DELETED"} # DEBUG
 
 def delete_job_service(job_id: str, cur, scheduler: BackgroundScheduler) -> Dict[str, Any]:
+
     """
-    Service to delete a single job. Returns the standard response dict.
+    If a job is still in apscheduelr table - meaning it hasnt been run yet - Deletes a scheduled job from both the scheduler and marks as deleted in job_infromation
+    
+    Parameters:
+        scheduler (BackgroundScheduler): The scheduler instance.
+        cur: The database cursor or SQLAlchemy connection (for DB row removal if needed).
+        job_id (str): The ID of the job to delete.
     """
-    del_job(job_id, cur, scheduler)
-    return {"message": f"Job {job_id} deleted."}
+
+    log = logging.debug if False else print
+
+    # Check if the job exists in the scheduler
+    job = scheduler.get_job(job_id)
+
+    if job:  # Job exists
+        log("Job found in scheduler.")
+        # Remove job from scheduler
+        scheduler.remove_job(job_id)
+        with get_cursor() as cur:
+            cur.execute(
+                text("UPDATE job_information SET status = :status WHERE id = :job_id"),
+                {"status": JOBSTATUS["DELETED"], "job_id": job_id}
+            )
+        return {"message" : f"Job {job_id} removed from scheduler." }
+        
+    else:
+        return {"message" : f"Job {job_id} isnt in pending ( either doesnt exist or is already running hence outside of apscheduler table )"}
+
+
+    
+
+
+
+
+
 
 
 def delete_job_batch_service(batch_id: str, cur, scheduler: BackgroundScheduler) -> Dict[str, Any]:
@@ -37,7 +73,7 @@ def delete_job_batch_service(batch_id: str, cur, scheduler: BackgroundScheduler)
 
     deleted_jobs_info = []
     for job_id in job_ids:
-        del_job(job_id, cur, scheduler)
+        delete_job_service(job_id, cur, scheduler)
         deleted_jobs_info.append(core_get_job_info(job_id, cur, scheduler))
 
     cur.execute(
