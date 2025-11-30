@@ -11,7 +11,7 @@ from timezone import TIMEZONE
 
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
+from job_and_listener.job.core import JobToCreate, create_job, JobMetadata, JobAction, JobSchedule
 # If these are not used in this file, also remove:
 from connection import validate_whatsapp_connection
 from compute_spread_times import compute_spread_times
@@ -153,7 +153,8 @@ def schedule_mass_messages_jobs(scheduler, cur, numbers, message):
             misfire_grace_time=1,
         )
 
-        create_job(cur, scheduler, metadata, action, schedule)
+        job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+        create_job(cur, scheduler, job)
 # ...existing code...
 
 

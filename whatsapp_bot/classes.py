@@ -24,9 +24,3 @@ class WhatsappGroupCreate:
     job_batch_name: str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
     
 
-@dataclass
-class JobInfo:
-    scheduler: BackgroundScheduler
-    function: Callable
-    params: dict = field(default_factory=dict)  # default to empty dict if not provided
-    job_batch_name : str = ""  # which dir for jobs (e.g mavdaks/30.07 etc)
