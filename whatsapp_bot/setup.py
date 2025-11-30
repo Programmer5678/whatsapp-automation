@@ -1,72 +1,30 @@
-from datetime import datetime
-import json
-from fastapi import FastAPI
+"""
+Scheduler and database setup module for the application.
+
+This module initializes the APScheduler instance used for handling
+scheduled tasks (e.g., WhatsApp mass-messaging jobs) and configures
+logging for scheduler-related events. It also creates required SQLAlchemy
+tables on application startup.
+
+The `setup(app)` function is intended to be called from the FastAPI
+startup event. It:
+
+  • configures and starts the BackgroundScheduler  
+  • attaches the scheduler and database engine to `app.state`  
+  • ensures all required SQLAlchemy tables exist
+
+Split into small helper functions for clarity:
+  - `_setup_scheduler_logger` manages logging configuration  
+  - `_setup_scheduler_core` constructs the scheduler  
+  - `setup_scheduler` wires everything together and starts it  
+  - `create_tables` creates SQL tables referenced by scheduled jobs
+"""
+
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-
-from sqlalchemy import text
-
-from job_status import JOBSTATUS
-from exception_to_json import exception_to_json
-from db.get_cursor import get_cursor
 from db.connection_str import connection_main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-
-
-
-
-
-
+from sqlalchemy import create_engine
 import logging
 from typing import Optional, Callable, Any
 
@@ -127,7 +85,24 @@ def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
 
 
 
+        
+def create_tables(engine):
+    
+    from sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
 
+    # Only create these two tables
+    GroupInfo.__table__.create(bind=engine, checkfirst=True)
+    Participants.__table__.create(bind=engine, checkfirst=True)
+    MassMessages.__table__.create(bind=engine, checkfirst=True)
+    JobBatch.__table__.create(bind=engine, checkfirst=True)
+    JobInformation.__table__.create(bind=engine, checkfirst=True)
+    
+
+
+def setup(app):
+    app.state.scheduler = setup_scheduler()
+    app.state.engine = create_engine(connection_main)
+    create_tables( engine=app.state.engine  )
 
 
 
@@ -140,17 +115,7 @@ def setup_scheduler(use_logging: bool = True) -> BackgroundScheduler:
         
         
 
-        
-def create_tables(engine):
-    
-    from sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
 
-    # Only create these two tables
-    GroupInfo.__table__.create(bind=engine, checkfirst=True)
-    Participants.__table__.create(bind=engine, checkfirst=True)
-    MassMessages.__table__.create(bind=engine, checkfirst=True)
-    JobBatch.__table__.create(bind=engine, checkfirst=True)
-    JobInformation.__table__.create(bind=engine, checkfirst=True)
 
 
 

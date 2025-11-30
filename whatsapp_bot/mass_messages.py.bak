@@ -11,7 +11,10 @@ from timezone import TIMEZONE
 
 from evo_request import evo_request_with_retries
 from evolution_framework import _phone_number
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
+
+from classes import CreateJob
+
+
 # If these are not used in this file, also remove:
 from connection import validate_whatsapp_connection
 from compute_spread_times import compute_spread_times

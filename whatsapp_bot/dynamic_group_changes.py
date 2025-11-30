@@ -1,4 +1,4 @@
-from setup import get_cursor
+from db import get_cursor
 from sqlalchemy import text
 
 def change_participants(cur, group_id, new_participants):
