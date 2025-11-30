@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import time
 from sqlalchemy import text
 
-from setup import get_cursor
+from db.get_cursor import get_cursor
 
 class BaseJob(ABC):
     """

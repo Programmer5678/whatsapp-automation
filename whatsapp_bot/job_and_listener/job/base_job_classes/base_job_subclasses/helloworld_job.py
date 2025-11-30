@@ -5,11 +5,12 @@ class HelloworldJob(BaseJob):
 
     def run(self):
         
-        print(f"waiting in job {self.job_name} ...")
-        import time
-        time.sleep(60)
-        print("done waiting")
         
-        print("Writing Hello world to helloworld.txt")
-        with open("helloworld.txt", "w") as f:
-            f.write("Hello world")
+        import time
+        time.sleep(1)
+        print(f"waiting in job {self.job_name} ...")
+        # print("done waiting")
+        
+        # print("Writing Hello world to helloworld.txt")
+        # with open("helloworld.txt", "w") as f:
+        #     f.write("Hello world")

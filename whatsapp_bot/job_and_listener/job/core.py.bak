@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from api.dependencies import get_cursor_dep
 from domain_errors import CantRetrieveSchedulerJobError
-import logging
+from classes import CreateJob
 
 from dataclasses import dataclass
 
@@ -84,8 +84,6 @@ def create_job(cur, scheduler: BackgroundScheduler, metadata: JobMetadata, actio
     insert_job_row(cur, metadata)
             
             
-    
-            
             
 
 def delete_job(scheduler: BackgroundScheduler, cur, job_id: str):
@@ -147,7 +145,7 @@ def delete_job(scheduler: BackgroundScheduler, cur, job_id: str):
 
 def del_job(job_id: str, cur, scheduler: BackgroundScheduler):
     # Delete job from scheduler and update DB
-    delete_job(scheduler, cur, job_id)
+    CreateJob.delete_job(scheduler, cur, job_id)
 
 
 def _format_dt(dt: Optional[datetime]) -> Optional[str]:

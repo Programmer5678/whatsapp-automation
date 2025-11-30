@@ -4,8 +4,7 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 from timezone import TIMEZONE
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
-from classes import JobInfo, WhatsappGroupCreate
+from classes import CreateJob, JobInfo, WhatsappGroupCreate
 from evolution_framework import _phone_number
 from evo_request import  evo_request_with_retries
 from warnings import warn
@@ -103,20 +102,19 @@ def schedule_add_participants_in_batches(
     full_job_id = f"{job_batch_name}/add_participants_in_batches"
 
     # ensure the function is a top-level callable (it is)
-    metadata = JobMetadata(
-        id=full_job_id,
-        description=f"Add remainding participants to group: {participants} " + group_id,
-        batch_id=job_batch_name,
-    )
-    action = JobAction(
+    job = CreateJob(
         func=AddParticipantsInBatchesJob.job,
+        run_time=datetime.now(ZoneInfo(TIMEZONE)),
         other_args={
             "group_id": group_id,
             "participants": participants
         },
+        id=full_job_id,
+        batch_id=job_batch_name,
+        scheduler=sched,
+        cur=cur,
+        description=f"Add remainding participants to group: {participants} " + group_id,
     )
-    schedule = JobSchedule(run_time=datetime.now(ZoneInfo(TIMEZONE)))
-    create_job(cur, sched, metadata, action, schedule)
 
     return full_job_id
 
@@ -262,17 +260,15 @@ def schedule_times_as_date_jobs(cur, job_info: JobInfo, run_times: List[datetime
         
         # print(f"Scheduling job {job_id} at {run_time}")
         
-        metadata = JobMetadata(
-            id=job_full_id,
-            description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
-            batch_id=job_info.job_batch_name,
-        )
-        action = JobAction(
-            func=job_info.function,
-            other_args=job_info.params,
-        )
-        schedule = JobSchedule(run_time=run_time)
-        create_job(cur, job_info.scheduler, metadata, action, schedule)
+        CreateJob(func=job_info.function,
+                  run_time=run_time,
+                  id=job_full_id,
+                  batch_id=job_info.job_batch_name,
+                  scheduler=job_info.scheduler,
+                  cur=cur,
+                  description=f"Send messages to group, and attempt to add participants(send them link) at {run_time.isoformat()}",
+                  other_args = job_info.params
+                  )
 
         # job_info.scheduler.add_job(
         #     job_info.function,

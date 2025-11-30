@@ -94,14 +94,17 @@ def ensure_status_isnt_deleted(job_id, job_status, use_logging=True):
     Raises an exception if the event is incompatible.
     Currently enforces that DELETED jobs can only receive JOB_REMOVED events.
     """
-    log = logging.debug if use_logging else print
+    
+    pass 
 
-    if job_status == JOBSTATUS["DELETED"] :
-        raise Exception(f"Cannot update job {job_id}: DELETED jobs shouldnt be recieving events as they dont exist in apscheduler.")
+    # log = logging.debug if use_logging else print
+
+    # if job_status == JOBSTATUS["DELETED"] :
+    #     raise Exception(f"Cannot update job {job_id}: DELETED jobs shouldnt be recieving events as they dont exist in apscheduler.")
 
 
 
-def determine_new_status(job_id, event_code, current_status, use_logging=True):
+def determine_new_status(job_id, event_code, current_status, use_logging=False):
     """
     Determine the new status of a job based on the incoming event code and its current status.
 
@@ -128,6 +131,7 @@ def determine_new_status(job_id, event_code, current_status, use_logging=True):
 
     if event_code == EVENT_JOB_SUBMITTED:
         if current_status == JOBSTATUS["PENDING"]:
+            log("Running running running ")
             return JOBSTATUS["RUNNING"]
         else:
             log(f"Job {job_id} is not in PENDING state, no update needed.")
@@ -144,6 +148,9 @@ def determine_new_status(job_id, event_code, current_status, use_logging=True):
         return JOBSTATUS["MISSED"]
     
     elif event_code == EVENT_JOB_REMOVED and current_status == JOBSTATUS["PENDING"] : # Can only delete pending job. # WATCH OUT - RACE CONDITIONS
+        log("Fuuuuck. we got a job removed after pending. Why didnt we get running first? makes no sense ") #DEBUG
+        import time
+        time.sleep(10)
         return JOBSTATUS["DELETED"]
         
 
