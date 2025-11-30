@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from api.dependencies import get_cursor_dep
-from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule, delete_job
+from job_and_listener.job.core import create_job, JobMetadata, JobAction, JobSchedule
 from job_and_listener.job.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
 from timezone import TIMEZONE
 from connection import validate_whatsapp_connection, is_whatsapp_connected
