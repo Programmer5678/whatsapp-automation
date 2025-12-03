@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from setup import create_tables, setup_scheduler
+from whatsapp_bot.api.setup.setup import create_tables, setup_scheduler
 
 from routes.group_creates import group_creates_router
 from routes.job import job_router
@@ -9,7 +9,7 @@ from routes.group_participants import participants_router
 
 from db.connection_str import connection_main
 
-from setup import setup
+from whatsapp_bot.api.setup.setup import setup
 
 
 app = FastAPI()

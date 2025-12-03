@@ -21,8 +21,8 @@ from apscheduler.events import (
 )
 from sqlalchemy import text
 
-from job_status import JOBSTATUS
-from exception_to_json import exception_to_json
+from whatsapp_bot.job_and_listener.job_status import JOBSTATUS
+from whatsapp_bot.core.exception_to_json import exception_to_json
 from db.get_cursor import get_cursor
 
 
@@ -145,12 +145,6 @@ def determine_new_status(job_id, event_code, current_status, use_logging=False):
     elif event_code == EVENT_JOB_MISSED:
         return JOBSTATUS["MISSED"]
     
-    # elif event_code == EVENT_JOB_REMOVED and current_status == JOBSTATUS["PENDING"] : # Can only delete pending job. # WATCH OUT - RACE CONDITIONS
-    #     log("Fuuuuck. we got a job removed after pending. Why didnt we get running first? makes no sense ") #DEBUG
-    #     import time
-    #     time.sleep(10)
-    #     return JOBSTATUS["DELETED"]
-        
 
     else:
         log(f"Unknown event code: {event_code}. Ignoring event for job {job_id}.")

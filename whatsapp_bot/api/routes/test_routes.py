@@ -7,13 +7,13 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from api.dependencies import get_cursor_dep
-from job_and_listener.job.core import JobToCreate, create_job, JobMetadata, JobAction, JobSchedule
-from job_and_listener.job.base_job_classes.base_job_subclasses.error_helloworld_job import ErrorHelloworldJob
-from timezone import TIMEZONE
-from connection import validate_whatsapp_connection, is_whatsapp_connected
+from whatsapp_bot.core.models.error_helloworld_job import ErrorHelloWorldJobFuncFunc
+from whatsapp_bot.core.timezone import TIMEZONE
+from whatsapp_bot.whatsapp.core.whatsapp_connection import validate_whatsapp_connection, is_whatsapp_connected
 from api.dependencies import get_scheduler
-from job_and_listener.job.base_job_classes.base_job_subclasses.helloworld_job import HelloworldJob
-
+from whatsapp_bot.core.models.helloworld_job import HelloWorldJobFunc
+from job_and_listener.job.core.create.create_job import create_job
+from job_and_listener.job.models.job_to_create_model import JobMetadata, JobAction, JobSchedule, JobToCreate
 
 test_router = APIRouter()
 
@@ -42,7 +42,7 @@ def schedule_error_job(
         description="Job that raises 'Hello world' exception",
         batch_id="example_batch_name",
     )
-    action = JobAction(func=ErrorHelloworldJob.job, other_args={})
+    action = JobAction(func=ErrorHelloWorldJobFuncFunc.job, run_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
     job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, scheduler, job)
@@ -73,7 +73,7 @@ def schedule_helloworld(
     batch_id = "example_batch_name"  # assume 1 for example
     
     metadata = JobMetadata(id=job_id, description=description, batch_id=batch_id)
-    action = JobAction(func=HelloworldJob.job, other_args={})
+    action = JobAction(func=HelloWorldJobFunc.job, run_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
     job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, scheduler, job)

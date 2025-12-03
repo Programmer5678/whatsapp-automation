@@ -6,13 +6,13 @@ like Mavdak, Raf0, Hakhana, etc.
 
 from fastapi import APIRouter, Depends
 from fastapi import FastAPI, status
-from models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
+from whatsapp_bot.api.base_models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
 from mavdak.mavdak import mavdak_full_sequence
-from connection import validate_whatsapp_connection
+from whatsapp_bot.whatsapp.core.whatsapp_connection import validate_whatsapp_connection
 from api.dependencies import  get_cursor_dep, get_scheduler
-from raf0 import raf0
+from whatsapp_bot.whatsapp_group.features.raf0 import raf0
 
-from hakhana import hakhana
+from whatsapp_bot.whatsapp_group.features.hakhana import hakhana
 
 
 group_creates_router = APIRouter(
