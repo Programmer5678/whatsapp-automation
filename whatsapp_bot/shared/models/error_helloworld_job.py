@@ -1,6 +1,6 @@
-from whatsapp_bot.job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from job_and_listener.job.models.base_job_func_model import BaseJobFunc
 
-class ErrorHelloWorldJobFuncFunc(BaseJobFunc):
+class ErrorHelloWorldJobFunc(BaseJobFunc):
 
 
     def run(self):

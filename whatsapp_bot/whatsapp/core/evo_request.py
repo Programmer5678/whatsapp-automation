@@ -2,7 +2,7 @@ import logging
 from typing import Any
 import requests
 from pprint import pformat
-from whatsapp_bot.core.domain_errors import ConnectionDomainError, EvolutionServerError, JSONParseError
+from shared.domain_errors import ConnectionDomainError, EvolutionServerError, JSONParseError
 
 # --- Config ---
 BASE_URL = "http://localhost:8080"      # Evolution API URL

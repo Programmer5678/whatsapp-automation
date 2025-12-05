@@ -1,5 +1,5 @@
-from evolution_framework import evo_request
-from whatsapp_bot.core.domain_errors import WhatsappNotConnected
+from shared.domain_errors import WhatsappNotConnected
+from whatsapp.core.evo_request import evo_request
 
 def is_whatsapp_connected() -> bool:
     """

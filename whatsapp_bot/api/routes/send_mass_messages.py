@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import text
 
-from api.dependencies import get_cursor_dep
-from whatsapp_bot.whatsapp.mass_messages import send_mass_messages_service
-from whatsapp_bot.api.base_models import SendMassMessagesRequestModel
-from whatsapp_bot.api.setup.setup import get_scheduler
+from api.dependencies import get_cursor_dep, get_scheduler
+from whatsapp.mass_messages import send_mass_messages_service
+from api.base_models import SendMassMessagesRequestModel
 
 messages_router = APIRouter()
 

@@ -1,6 +1,4 @@
-from fastapi import Depends, Request
-from db.connection_str import connection_main
-from sqlalchemy import create_engine
+from fastapi import Request
 from db.get_cursor import get_cursor
 
 

@@ -1,12 +1,10 @@
-import time
 from typing import List
 
 from zoneinfo import ZoneInfo
 
-from whatsapp_bot.whatsapp.core.core import _phone_number
-from whatsapp_bot.whatsapp.whatsapp_group.core.schedule_create_group import schedule_deadline_jobs
-from whatsapp_bot.whatsapp.whatsapp_group.features.participants.db import _save_group_and_participants
-from whatsapp_bot.whatsapp.core.evo_request import  evo_request_with_retries
+from whatsapp.core.core import BUSINESS_HOURS_DEFAULT, _phone_number
+from whatsapp.whatsapp_group.features.participants.db import _save_group_and_participants
+from whatsapp.core.evo_request import  evo_request_with_retries
 
 
 from sqlalchemy import text
@@ -15,9 +13,11 @@ from sqlalchemy import text
 from datetime import datetime, timedelta
 
 from job_and_listener.job.core.create.create_job import create_job
-from job_and_listener.job.models.job_to_create_model import JobAction, JobMetadata, JobSchedule, JobToCreate
-from whatsapp_bot.whatsapp.whatsapp_group.models.job_funcs.add_participants_in_batches import AddParticipantsInBatchesJobFunc
-from whatsapp_bot.whatsapp_group_.models.whatsapp_group_create import WhatsappGroupCreate
+from job_and_listener.job.models.job_model import JobAction, JobMetadata, JobSchedule, Job
+from whatsapp.whatsapp_group.models.job_funcs.add_participants_in_batches import AddParticipantsInBatchesJobFunc
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
+from shared.timezone import TIMEZONE
+from whatsapp.whatsapp_group.core.schedule_create_group.schedule_deadline_jobs import schedule_deadline_jobs
 
 
 
@@ -80,16 +80,17 @@ def schedule_add_participants_in_batches(
         },
     )
     schedule = JobSchedule(run_time=datetime.now(ZoneInfo(TIMEZONE)))
-    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    job = Job(metadata=metadata, action=action, schedule=schedule)
     
-    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    job = Job(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, sched, job)
 
     return full_job_id
 
 
 
-def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, bussiness_hours: list = BUSINESS_HOURS_DEFAULT) -> None:
+def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5, 
+                      bussiness_hours: list = BUSINESS_HOURS_DEFAULT) -> None:
     """
     Validates that the deadline is at least `min_minutes_ahead` minutes in the future
     and falls within business hours.

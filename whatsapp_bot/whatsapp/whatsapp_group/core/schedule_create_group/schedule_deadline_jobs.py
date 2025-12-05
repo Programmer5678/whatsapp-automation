@@ -2,15 +2,15 @@
 
 from zoneinfo import ZoneInfo
 
-from whatsapp_bot.core.timezone import TIMEZONE
-from whatsapp_bot.whatsapp.whatsapp_group.core import compute_spread_times
-from whatsapp_bot.whatsapp.whatsapp_group.models.job_funcs.new_group_job_func.new_group import NewGroupJobFunc
-from whatsapp_bot.whatsapp_group_create.models.whatsapp_group_create import WhatsappGroupCreate
+from shared.timezone import TIMEZONE
+from whatsapp.whatsapp_group.models.job_funcs.new_group_job_func.new_group import NewGroupJobFunc
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
 
 from datetime import datetime, timedelta
 
 from job_and_listener.job.core.create.create_job import create_job
-from job_and_listener.job.models.job_to_create_model import JobAction, JobMetadata, JobSchedule, JobToCreate
+from job_and_listener.job.models.job_model import JobAction, JobMetadata, JobSchedule, Job
+from whatsapp.whatsapp_group.core.compute_spread_times import compute_spread_times
 
 def get_job_metadatas(description, batch_id, num_jobs):
     
@@ -41,20 +41,25 @@ def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: i
 
     metadatas = get_job_metadatas(description="Send messages to group, and attempt to add participants(send them link)"
                                   , batch_id=req.job_batch_name
-                                  , num_jobs = len(runs) )
+                                  , num_jobs = runs)
     
-    actions = get_job_actions(func=NewGroupJobFunc.job, run_args={
+    actions = get_job_actions(
+        func=NewGroupJobFunc.job,
+        run_args={
             "invite_msg_title": req.invite_msg_title,
             "media": req.media,
             "messages": req.messages,
             "group_id": group_id,
-        })
+        },
+        num_jobs=runs,
+    )
+
     
     run_times = compute_spread_times(start, deadline=deadline, min_diff=timedelta(minutes=1), runs=runs)
     schedules = [ JobSchedule(run_time=run_time) for run_time in run_times]
     
-    jobs = [ JobToCreate(metadata=metadata, action=action, schedule=schedule) for metadata,action, schedule in zip(metadatas, actions, schedules) ]
+    jobs = [ Job(metadata=metadata, action=action, schedule=schedule) for metadata,action, schedule in zip(metadatas, actions, schedules) ]
     
     for j in jobs:
-        create_job(cur, req.scheduler, j)
+        create_job(cur, req.sched, j)
     

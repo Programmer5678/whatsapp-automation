@@ -2,12 +2,14 @@ import logging
 from typing import List
 from warnings import warn
 
-from evolution_framework import _phone_number, get_group_invite_link, get_group_member_ids
-from whatsapp_bot.whatsapp.core.evo_request import evo_request_with_retries
+from whatsapp.core.evo_request import evo_request_with_retries
 import time
 from sqlalchemy import text
 
-from whatsapp_bot.job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from whatsapp.core.core import _phone_number
+from whatsapp.whatsapp_group.core import get_group_invite_link
+from whatsapp.whatsapp_group.features.participants.core import get_group_member_ids
 
 
 class HandleFailedAddsJobFunc(BaseJobFunc):

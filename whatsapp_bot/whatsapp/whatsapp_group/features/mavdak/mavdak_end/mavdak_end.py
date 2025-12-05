@@ -1,10 +1,8 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
-from whatsapp_bot.core.timezone import TIMEZONE
-from whatsapp_bot.whatsapp.whatsapp_group.features.mavdak.mavdak_end.mavdak_end_job import MavdakEndJobFunc
-from job_and_listener.job.models.job_to_create_model import JobAction, JobMetadata, JobSchedule, JobToCreate
+from job_and_listener.job.models.job_model import JobAction, JobMetadata, JobSchedule, Job
 from job_and_listener.job.core.create.create_job import create_job
+from whatsapp.whatsapp_group.features.mavdak.mavdak_end.models.mavdak_end_job_func import MavdakEndJobFunc
 
 def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundScheduler, job_batch_name : str, cur) -> None:
     """
@@ -23,7 +21,7 @@ def mavdak_end(mavdak_group_id: str, when_to_send: datetime, sched: BackgroundSc
     )
     schedule = JobSchedule(run_time=when_to_send)
 
-    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    job = Job(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, sched, job)
     
     print(f"Scheduled messages for {when_to_send}")

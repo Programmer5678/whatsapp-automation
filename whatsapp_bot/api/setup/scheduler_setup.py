@@ -2,12 +2,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from db.connection_str import connection_main
-from sqlalchemy import create_engine
 import logging
 from typing import Optional, Callable, Any
 
 from job_and_listener.listener import listener
-from db.create_tables import create_tables
 
 
 def _setup_scheduler_logger(use_logging: bool = True, filename: str = "app.log") -> None:

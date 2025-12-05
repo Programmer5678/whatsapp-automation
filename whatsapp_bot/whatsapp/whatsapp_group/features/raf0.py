@@ -1,10 +1,10 @@
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
-from models import Raf0RequestModel
+from api.base_models import Raf0RequestModel
 from apscheduler.schedulers.background import BackgroundScheduler
-from whatsapp_bot.core.timezone import TIMEZONE
-from whatsapp_bot.whatsapp_group_create.models.whatsapp_group_create import WhatsappGroupCreate
-from whatsapp_bot.whatsapp_group_create.schedule_create_group import create_group_and_invite
+from shared.timezone import TIMEZONE
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
+from whatsapp.whatsapp_group.core.schedule_create_group.core import create_group_and_invite
 
 def calculate_deadline(req_date: date) -> datetime:
     """

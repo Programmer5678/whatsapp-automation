@@ -1,21 +1,11 @@
-
-from sqlalchemy import Column, String, ForeignKey, Integer, Boolean, JSON, ARRAY
-from sqlalchemy.orm import relationship
-
-
-from sqlalchemy import (
-Column,
-Integer,
-String,
-Text,
-DateTime,
-func,
-ForeignKey,
-)
+# SQLAlchemy core imports
+from sqlalchemy import Column, Integer, String, Text, Boolean, JSON, ARRAY, ForeignKey, DateTime, func
+from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
-from sqlalchemy.orm import declarative_base
 
-from whatsapp_bot.job_and_listener.job_status import JOBSTATUS
+# Project-specific import
+from job_and_listener.job_status import JOBSTATUS
+
 
 Base = declarative_base()
 
@@ -60,10 +50,11 @@ class JobBatch(Base):
 # Postgres ENUM type (create_type=True will instruct SQLAlchemy to emit CREATE TYPE when using
 # metadata.create_all; prefer migrations for production)
 jobstatus_enum = PG_ENUM(
-*JOBSTATUS.values(),
-name="jobstatus",
-create_type=True,
-)   
+    *JOBSTATUS.values(),
+    name="jobstatus",
+    create_type=True,
+)
+
 
 class JobInformation(Base):
     __tablename__ = "job_information"
