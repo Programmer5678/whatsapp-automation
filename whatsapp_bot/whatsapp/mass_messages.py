@@ -24,9 +24,10 @@ from whatsapp.whatsapp_group.core.compute_spread_times import compute_spread_tim
 # Job and listener
 from job_and_listener.job.core.create.create_job import create_job
 from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
+from job_and_listener.job_batch.core import create_job_batch
 
 
-
+SEND_MASS_MESSAGES_BATCH_ID = "send_mass_messages_batch"
    
 # --- Define callbacks ---
 def mark_message_success_in_sql(cur, phone_number: str):
@@ -116,7 +117,7 @@ def schedule_mass_messages_jobs(scheduler, cur, numbers, message):
         metadata = JobMetadata(
             id="send_message_to_" + p + "_" + run_time.strftime("%Y%m%d%H%M%S"),
             description="",
-            batch_id="send_mass_messages_batch",
+            batch_id=SEND_MASS_MESSAGES_BATCH_ID,
         )
 
         action = JobAction(
@@ -166,6 +167,8 @@ def send_mass_messages_service(sched, cur, payload: SendMassMessagesRequestModel
     
     # --- Insert participants into mass_messages table ---
     insert_participants_to_sql(cur, payload.participants)
+
+    create_job_batch(SEND_MASS_MESSAGES_BATCH_ID, cur)
 
     # schedule the jobs
     schedule_mass_messages_jobs(sched, cur, [part.phone_number for part in payload.participants], payload.message)
