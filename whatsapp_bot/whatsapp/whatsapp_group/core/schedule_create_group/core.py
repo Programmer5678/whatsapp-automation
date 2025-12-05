@@ -18,8 +18,7 @@ from whatsapp.whatsapp_group.models.job_funcs.add_participants_in_batches import
 from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
 from shared.timezone import TIMEZONE
 from whatsapp.whatsapp_group.core.schedule_create_group.schedule_deadline_jobs import schedule_deadline_jobs
-
-
+from job_and_listener.job_batch.core import create_job_batch
 
 
 
@@ -130,8 +129,7 @@ def create_group_and_invite(cur, req: WhatsappGroupCreate) -> str:
     
     validate_deadline(req.deadline)  
     
-    cur.execute(text("INSERT INTO job_batch (name) VALUES (:name)"), {"name": req.job_batch_name} )
-    
+        
     group_id = create_group(req, cur)
     if not group_id:
         raise RuntimeError("Failed to create group or no group ID returned")

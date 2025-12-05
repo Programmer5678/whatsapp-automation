@@ -2,6 +2,7 @@ from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
 from api.base_models import MavdakRequestModel
+from job_and_listener.job_batch.core import create_job_batch
 
 from .mavdak_start import mavdak_start
 from .mavdak_end.mavdak_end import mavdak_end
@@ -30,6 +31,7 @@ def mavdak_full_sequence(req: MavdakRequestModel, sched : BackgroundScheduler, c
 
     
     job_batch_name = f"mavdaks/{req.base_date}" 
+    create_job_batch( job_batch_name, cur)
 
     # Step 1 — Start the mavdak
     mavdak_group_id = mavdak_start( req ,sched, job_batch_name, cur) 

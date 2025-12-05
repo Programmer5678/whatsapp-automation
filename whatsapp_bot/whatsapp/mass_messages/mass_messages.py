@@ -10,7 +10,6 @@ from sqlalchemy import text
 # from typing import ...
 
 # Project-specific imports
-from api.base_models import SendMassMessagesRequestModel
 from shared.timezone import TIMEZONE
 from shared.exception_to_json import exception_to_json
 from db.get_cursor import get_cursor
@@ -18,12 +17,12 @@ from db.get_cursor import get_cursor
 # WhatsApp core
 from whatsapp.core.evo_request import evo_request_with_retries
 from whatsapp.core.core import _phone_number
-from whatsapp.core.whatsapp_connection import validate_whatsapp_connection
 from whatsapp.whatsapp_group.core.compute_spread_times import compute_spread_times
 
 # Job and listener
 from job_and_listener.job.core.create.create_job import create_job
 from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
+from api.base_models import SendMassMessagesRequestModel
 from job_and_listener.job_batch.core import create_job_batch
 
 
@@ -161,16 +160,24 @@ def insert_participants_to_sql(cur, participants):
             }
         )
 
-def send_mass_messages_service(sched, cur, payload: SendMassMessagesRequestModel):
-    validate_whatsapp_connection() 
-    
-    
-    # --- Insert participants into mass_messages table ---
+
+
+def send_mass_messages_core(
+    sched, cur, payload: SendMassMessagesRequestModel
+):
+    # Insert participants into DB
     insert_participants_to_sql(cur, payload.participants)
 
+    # Create batch ID (constant)
     create_job_batch(SEND_MASS_MESSAGES_BATCH_ID, cur)
 
-    # schedule the jobs
-    schedule_mass_messages_jobs(sched, cur, [part.phone_number for part in payload.participants], payload.message)
-    
-    return {"message": "Mass messages scheduling initiated."}
+    # Extract phone numbers
+    phone_numbers = [p.phone_number for p in payload.participants]
+
+    # Schedule the message jobs
+    schedule_mass_messages_jobs(
+        sched,
+        cur,
+        phone_numbers,
+        payload.message
+    )
