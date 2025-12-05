@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from shared.timezone import TIMEZONE
 from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
 from whatsapp.whatsapp_group.core.schedule_create_group.core import create_group_and_invite
+from job_and_listener.job_batch.core import create_job_batch
 
 def calculate_deadline(req_date: date) -> datetime:
     """
@@ -18,6 +19,11 @@ def calculate_deadline(req_date: date) -> datetime:
 
 # The actual function that does all the group creation
 def raf0(req : Raf0RequestModel, sched: BackgroundScheduler, cur) -> None:
+    
+    
+    job_batch_name=f"raf0/{req.date}"
+    create_job_batch( job_batch_name, cur)
+    
     # Your original RAF0 "juice" code goes here
     group_name = f"רף 0 {req.date}"
     group_invite_msg_title = f"בבקשה להצטרף לקבוצה של הרף 0 שיתקיים ב {req.date}"
@@ -46,7 +52,7 @@ def raf0(req : Raf0RequestModel, sched: BackgroundScheduler, cur) -> None:
         media=[media],
         sched=sched,
         deadline=calculate_deadline(req.date),
-        job_batch_name=f"raf0/{req.date}"
+        job_batch_name=job_batch_name
     )
     
     

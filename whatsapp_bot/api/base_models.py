@@ -29,17 +29,34 @@ class Raf0RequestModel(BaseModel):
         min_items=1
     )
     
-
-# Request model for חֲכָנָה
-class HakhanaRequestModel(BaseModel):
-    date: date  # YYYY-MM-DD
-    # deadline is provided directly by the caller (already a timezone-aware datetime if needed)
+class BaseGroupRequestModel(BaseModel):
+    """
+    Base model for group creation requests that require:
+    - a date (YYYY-MM-DD)
+    - a deadline (timezone-aware datetime)
+    - a list of participants (Israeli phone numbers)
+    """
+    date: date
     deadline: datetime
 
-    group_participants: f'List[{IsraeliPhoneNumber}]' = Field(
-        ...,  # required
-        min_items=1
+    group_participants: f"List[{IsraeliPhoneNumber}]" = Field(
+        ...,
+        min_items=1,
     )
+    
+class HakhanaRequestModel(BaseGroupRequestModel):
+    """
+    Request model for הכנה (Hakhana)
+    """
+    pass
+
+
+class VeadatKevaRequestModel(BaseGroupRequestModel):
+    """
+    Request model for ועדת קבע (Veadat Keva)
+    """
+    pass
+
     
 
 class ChangeParticipantsRequestModel(BaseModel):
