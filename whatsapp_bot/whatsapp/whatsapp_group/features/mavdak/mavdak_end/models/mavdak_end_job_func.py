@@ -2,9 +2,8 @@
 
 
 import logging
-from typing import List
-from whatsapp_bot.job_and_listener.job.models.base_job_func_model import BaseJobFunc
-from whatsapp_bot.whatsapp_group.core.send_medias_and_messages_to_group_to_group import send_messages_to_group
+from job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from whatsapp.whatsapp_group.core.send_stuff_to_group import send_messages_to_group
 
 
 class MavdakEndJobFunc(BaseJobFunc):

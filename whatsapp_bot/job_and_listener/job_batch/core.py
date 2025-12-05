@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from typing import List, Optional
+from typing import List
 from apscheduler.schedulers.background import BackgroundScheduler
 from job_and_listener.job.core.delete.core import delete_job    
 

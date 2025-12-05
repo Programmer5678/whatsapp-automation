@@ -1,7 +1,4 @@
-from dataclasses import dataclass
 from typing import List
-from whatsapp_bot.whatsapp.core.evo_request import evo_request, evo_request_with_retries
-from sqlalchemy import text
 from whatsapp.core.evo_request import evo_request_with_retries
 from whatsapp.core.core import _phone_number
 

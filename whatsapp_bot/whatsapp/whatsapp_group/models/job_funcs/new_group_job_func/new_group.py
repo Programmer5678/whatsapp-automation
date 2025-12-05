@@ -1,6 +1,6 @@
-from whatsapp_bot.whatsapp_group.core.send_medias_and_messages_to_group_to_group import send_medias_and_messages_to_group
-from whatsapp_bot.job_and_listener.job.models.base_job_func_model import BaseJobFunc
-from whatsapp_bot.whatsapp.whatsapp_group.models.new_group_job_func.handle_failed_adds import HandleFailedAddsJobFunc
+from whatsapp.whatsapp_group.core.send_stuff_to_group import send_medias_and_messages_to_group
+from job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from whatsapp.whatsapp_group.models.job_funcs.new_group_job_func.handle_failed_adds import HandleFailedAddsJobFunc
     
 
 class NewGroupJobFunc(BaseJobFunc):

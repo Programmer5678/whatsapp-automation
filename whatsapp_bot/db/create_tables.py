@@ -1,6 +1,6 @@
 def create_tables(engine):
     
-    from whatsapp_bot.db.sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
+    from db.sqlalchemy_models import GroupInfo, Participants, MassMessages, JobBatch, JobInformation  # import your models
 
     # Only create these two tables
     GroupInfo.__table__.create(bind=engine, checkfirst=True)

@@ -1,10 +1,8 @@
-from zoneinfo import ZoneInfo
-from datetime import datetime
-from whatsapp_bot.core.timezone import TIMEZONE
 from apscheduler.schedulers.background import BackgroundScheduler
-from models import MavdakRequestModel
-from whatsapp_bot.whatsapp_group_create.models.whatsapp_group_create import WhatsappGroupCreate
-from whatsapp_bot.whatsapp_group_create.schedule_create_group import create_group_and_invite
+from api.base_models import MavdakRequestModel
+from whatsapp.whatsapp_group.core.schedule_create_group.core import create_group_and_invite
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
+
 
 
 def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, job_batch_name : str, cur) -> str:
@@ -68,7 +66,7 @@ def mavdak_start(req : MavdakRequestModel, sched : BackgroundScheduler, job_batc
 
     {req.forms_link}
     """
-        ]
+    ]
 
 
     group_name = f"מבדק {mavdak_date}"

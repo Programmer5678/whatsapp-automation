@@ -1,51 +1,32 @@
 from datetime import datetime, timedelta
 import logging
-import traceback
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import text, bindparam
 
-from whatsapp_bot.api.base_models import SendMassMessagesRequestModel
-from db import get_cursor
-from whatsapp_bot.core.timezone import TIMEZONE
+# SQLAlchemy
+from sqlalchemy import text
 
+# Typing / other standard libs (if needed)
+# from typing import ...
+
+# Project-specific imports
+from api.base_models import SendMassMessagesRequestModel
+from shared.timezone import TIMEZONE
+from shared.exception_to_json import exception_to_json
+from db.get_cursor import get_cursor
+
+# WhatsApp core
 from whatsapp.core.evo_request import evo_request_with_retries
-# If these are not used in this file, also remove:
-from whatsapp_bot.whatsapp.core.whatsapp_connection import validate_whatsapp_connection
-from whatsapp_group.core.compute_spread_times import compute_spread_times
-from whatsapp_bot.core.exception_to_json import exception_to_json
+from whatsapp.core.core import _phone_number
+from whatsapp.core.whatsapp_connection import validate_whatsapp_connection
+from whatsapp.whatsapp_group.core.compute_spread_times import compute_spread_times
+
+# Job and listener
 from job_and_listener.job.core.create.create_job import create_job
-from datetime import datetime, timedelta
-from job_and_listener.job.models.job_to_create_model import JobMetadata, JobAction, JobSchedule, JobToCreate
-from whatsapp.core import _phone_number
+from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
 
-# def calculate_relevant_participants(cur, participants):
-#     """
-#     Returns only participants whose IDs are not marked success=TRUE in mass_messages.
 
-#     Args:
-#         cur: Active database cursor or SQLAlchemy connection.
-#         participants: List of participant objects (must have 'id' attribute).
 
-#     Returns:
-#         List of participants still relevant for sending.
-#     """
-#     if not participants:
-#         return []
-
-#     ids = [p.id for p in participants]
-
-#     res = cur.execute(
-#         text("SELECT id FROM mass_messages WHERE id IN :ids AND success = TRUE").bindparams( bindparam("ids", expanding=True) )
-#         , {"ids": ids}
-#     ).fetchall()
-
-#     already_success_ids = {row[0] for row in res }
-
-#     return [p for p in participants if p.id not in already_success_ids]
-   
-   
-   
    
 # --- Define callbacks ---
 def mark_message_success_in_sql(cur, phone_number: str):
@@ -86,7 +67,7 @@ def mass_messages_job(job_name, run_args, use_logging=True):
     """
     with get_cursor() as cur:
         
-        log = logging.debug if use_logging else print
+        logging.debug if use_logging else print
         
         try:
             # Send the message via the API
@@ -115,12 +96,6 @@ def mass_messages_job(job_name, run_args, use_logging=True):
         mark_message_success_in_sql(cur, run_args["p"])
 
 
-# ...existing code...
-from whatsapp_bot.whatsapp.core.evo_request import evo_request_with_retries
-from evolution_framework import _phone_number
-from job_and_listener.job.core.create.create_job import create_job
-
-# ...existing code...
 
 def schedule_mass_messages_jobs(scheduler, cur, numbers, message):
     """
@@ -155,7 +130,7 @@ def schedule_mass_messages_jobs(scheduler, cur, numbers, message):
             misfire_grace_time=1,
         )
 
-        job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+        job = Job(metadata=metadata, action=action, schedule=schedule)
         create_job(cur, scheduler, job)
 # ...existing code...
 
@@ -187,13 +162,6 @@ def insert_participants_to_sql(cur, participants):
 
 def send_mass_messages_service(sched, cur, payload: SendMassMessagesRequestModel):
     validate_whatsapp_connection() 
-    
-    # ids = [part.id for part in payload.participants]  
-    # phone_numbers = [part.phone_number for part in payload.participants] 
-    
-    # if len(set(ids)) != len(ids) or len(set(phone_numbers)) != len(phone_numbers):
-    #     raise Exception("Duplicate participant IDs or phone numbers found in the payload.")
-    
     
     
     # --- Insert participants into mass_messages table ---

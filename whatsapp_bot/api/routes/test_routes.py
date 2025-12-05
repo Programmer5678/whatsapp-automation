@@ -7,13 +7,13 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from api.dependencies import get_cursor_dep
-from whatsapp_bot.core.models.error_helloworld_job import ErrorHelloWorldJobFuncFunc
-from whatsapp_bot.core.timezone import TIMEZONE
-from whatsapp_bot.whatsapp.core.whatsapp_connection import validate_whatsapp_connection, is_whatsapp_connected
+from shared.timezone import TIMEZONE
+from whatsapp.core.whatsapp_connection import validate_whatsapp_connection, is_whatsapp_connected
 from api.dependencies import get_scheduler
-from whatsapp_bot.core.models.helloworld_job import HelloWorldJobFunc
 from job_and_listener.job.core.create.create_job import create_job
-from job_and_listener.job.models.job_to_create_model import JobMetadata, JobAction, JobSchedule, JobToCreate
+from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
+from shared.models.error_helloworld_job import ErrorHelloWorldJobFunc
+from shared.models.helloworld_job import HelloWorldJobFunc
 
 test_router = APIRouter()
 
@@ -42,9 +42,9 @@ def schedule_error_job(
         description="Job that raises 'Hello world' exception",
         batch_id="example_batch_name",
     )
-    action = JobAction(func=ErrorHelloWorldJobFuncFunc.job, run_args={})
+    action = JobAction(func=ErrorHelloWorldJobFunc.job, run_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
-    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    job = Job(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, scheduler, job)
 
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
@@ -75,7 +75,7 @@ def schedule_helloworld(
     metadata = JobMetadata(id=job_id, description=description, batch_id=batch_id)
     action = JobAction(func=HelloWorldJobFunc.job, run_args={})
     schedule = JobSchedule(run_time=run_date, misfire_grace_time=1)
-    job = JobToCreate(metadata=metadata, action=action, schedule=schedule)
+    job = Job(metadata=metadata, action=action, schedule=schedule)
     create_job(cur, scheduler, job)
 
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}

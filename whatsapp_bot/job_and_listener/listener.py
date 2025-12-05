@@ -21,8 +21,8 @@ from apscheduler.events import (
 )
 from sqlalchemy import text
 
-from whatsapp_bot.job_and_listener.job_status import JOBSTATUS
-from whatsapp_bot.core.exception_to_json import exception_to_json
+from job_and_listener.job_status import JOBSTATUS
+from shared.exception_to_json import exception_to_json
 from db.get_cursor import get_cursor
 
 
@@ -96,7 +96,7 @@ def ensure_status_isnt_deleted(job_id, job_status, use_logging=True):
     """
     
 
-    log = logging.debug if use_logging else print
+    logging.debug if use_logging else print
 
     if job_status == JOBSTATUS["DELETED"] :
         raise Exception(f"Cannot update job {job_id}: DELETED jobs shouldnt be recieving events as they dont exist in apscheduler.")

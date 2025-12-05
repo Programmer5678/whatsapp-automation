@@ -1,9 +1,9 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import text
-from job_and_listener.job.models.job_to_create_model import JobToCreate, JobMetadata
+from job_and_listener.job.models.job_model import Job, JobMetadata
 
 
-def schedule_job(scheduler: BackgroundScheduler, job: JobToCreate) -> None:
+def schedule_job(scheduler: BackgroundScheduler, job: Job) -> None:
     """
     Schedule a job with APScheduler.
     """
@@ -40,7 +40,7 @@ def insert_job_row(cur, metadata: JobMetadata) -> None:
     )
 
 
-def create_job(cur, scheduler: BackgroundScheduler, job: JobToCreate) -> None:
+def create_job(cur, scheduler: BackgroundScheduler, job: Job) -> None:
     """
     High-level helper that schedules a job and creates its DB row.
     """

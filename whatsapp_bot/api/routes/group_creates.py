@@ -5,14 +5,14 @@ like Mavdak, Raf0, Hakhana, etc.
 
 
 from fastapi import APIRouter, Depends
-from fastapi import FastAPI, status
-from whatsapp_bot.api.base_models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
-from mavdak.mavdak import mavdak_full_sequence
-from whatsapp_bot.whatsapp.core.whatsapp_connection import validate_whatsapp_connection
+from fastapi import status
+from api.base_models import HakhanaRequestModel, MavdakRequestModel, Raf0RequestModel
+from whatsapp.whatsapp_group.features.mavdak.mavdak import mavdak_full_sequence
+from whatsapp.core.whatsapp_connection import validate_whatsapp_connection
 from api.dependencies import  get_cursor_dep, get_scheduler
-from whatsapp_bot.whatsapp_group.features.raf0 import raf0
+from whatsapp.whatsapp_group.features.raf0 import raf0
 
-from whatsapp_bot.whatsapp_group.features.hakhana import hakhana
+from whatsapp.whatsapp_group.features.hakhana import hakhana
 
 
 group_creates_router = APIRouter(

@@ -1,10 +1,7 @@
-from datetime import date, datetime
-from typing import List, Any
-from pydantic import BaseModel, Field, constr
 from apscheduler.schedulers.background import BackgroundScheduler
-from whatsapp_bot.whatsapp_group_create.models.whatsapp_group_create import WhatsappGroupCreate
-from whatsapp_bot.whatsapp_group_create.schedule_create_group import create_group_and_invite
-from models import HakhanaRequestModel
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
+from whatsapp.whatsapp_group.core.schedule_create_group.core import create_group_and_invite
+from api.base_models import HakhanaRequestModel
 
 
 def hakhana(req: HakhanaRequestModel, sched: BackgroundScheduler, cur) -> None:

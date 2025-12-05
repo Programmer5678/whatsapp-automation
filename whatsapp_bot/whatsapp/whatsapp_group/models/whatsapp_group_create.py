@@ -1,13 +1,8 @@
-from dataclasses import dataclass, field
-import logging
-from typing import List, Callable
+from dataclasses import dataclass
+from typing import List
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
-from datetime import datetime
-from typing import Any, Optional, Dict
-from sqlalchemy import text
 
-from whatsapp_bot.job_and_listener.job_status import JOBSTATUS
 
 
 

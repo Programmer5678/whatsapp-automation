@@ -1,10 +1,12 @@
+# Standard library imports
 from datetime import datetime, time, timedelta
 import logging
-from typing import List
-from zoneinfo import ZoneInfo
-from whatsapp_bot.core.timezone import TIMEZONE
-from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
+from zoneinfo import ZoneInfo
+
+# Project-specific imports
+from shared.timezone import TIMEZONE
+from whatsapp.core.core import BUSINESS_HOURS_DEFAULT
 
 
 # Oct 1, 2025 00:00, timezone-aware
@@ -254,7 +256,8 @@ def test_compute_spread_times3():
 
     try:
         run_times = compute_spread_times(start, min_diff=min_diff, deadline=deadline, runs=runs)
-    except ValueError as e:
+        print(run_times)
+    except ValueError:
         return True
     
     raise Exception("Expected ValueError due to insufficient spacing between runs")

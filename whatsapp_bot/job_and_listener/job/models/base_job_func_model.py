@@ -1,6 +1,5 @@
 import json
 from abc import ABC, abstractmethod
-import time
 from sqlalchemy import text
 
 from db.get_cursor import get_cursor
@@ -46,7 +45,6 @@ class BaseJobFunc(ABC):
         Args:
             **kwargs: Arbitrary keyword arguments required by the specific job.
         """
-        pass
 
     @classmethod
     def job(cls, job_name: str, run_args):

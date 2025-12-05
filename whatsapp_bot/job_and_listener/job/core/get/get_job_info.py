@@ -3,7 +3,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from typing import Any, Dict, Optional
 from datetime import datetime
 
-from whatsapp_bot.core.domain_errors import CantRetrieveSchedulerJobError
+from shared.domain_errors import CantRetrieveSchedulerJobError
 from sqlalchemy import text
 
 

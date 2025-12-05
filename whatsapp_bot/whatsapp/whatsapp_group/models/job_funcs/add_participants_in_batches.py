@@ -1,10 +1,9 @@
 import logging
 import time
 from typing import List
-from warnings import warn
-from whatsapp_bot.whatsapp.core.evo_request import evo_request_with_retries
-from evolution_framework import _phone_number
-from whatsapp_bot.job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from whatsapp.core.evo_request import evo_request_with_retries
+from job_and_listener.job.models.base_job_func_model import BaseJobFunc
+from whatsapp.core.core import _phone_number
 
 
 

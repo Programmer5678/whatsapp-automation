@@ -1,4 +1,7 @@
-from evolution_framework import  WhatsappGroupCreate, create_group_and_invite
+
+from whatsapp.whatsapp_group.core.schedule_create_group.core import create_group_and_invite
+from whatsapp.whatsapp_group.models.whatsapp_group_create import WhatsappGroupCreate
+
 
 veadat_keva_date = "DATE"
 veadat_keva_time = "TIME"

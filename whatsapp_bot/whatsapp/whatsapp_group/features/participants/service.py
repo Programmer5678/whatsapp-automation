@@ -1,4 +1,7 @@
-from .core import change_participants, get_group_participants
+
+from whatsapp.whatsapp_group.features.participants.core import get_group_participants
+from whatsapp.whatsapp_group.features.participants.db import change_participants
+
 
 def get_group_participants_service(gid: str, excluded: list[str]) -> dict:
     """

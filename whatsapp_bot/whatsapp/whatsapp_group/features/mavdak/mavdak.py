@@ -1,11 +1,11 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
-from models import MavdakRequestModel
+from api.base_models import MavdakRequestModel
 
 from .mavdak_start import mavdak_start
 from .mavdak_end.mavdak_end import mavdak_end
-from whatsapp_bot.core.timezone import TIMEZONE
+from shared.timezone import TIMEZONE
 from apscheduler.schedulers.background import BackgroundScheduler
 
 
