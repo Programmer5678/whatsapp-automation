@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import logging
-from typing import Any, List
+from typing import Any, Dict, List
 from zoneinfo import ZoneInfo
 
 
@@ -22,8 +22,9 @@ from whatsapp.whatsapp_group.core.compute_spread_times import compute_spread_tim
 # Job and listener
 from job_and_listener.job.core.create.create_job import create_job
 from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
-from api.base_models import SendMassMessagesRequestModel
+from api.base_models import ParticipantItem, SendMassMessagesRequestModel
 from job_and_listener.job_batch.core import create_job_batch
+from whatsapp.mass_messages.db import insert_to_mass_messages_sql
 
 
 SEND_MASS_MESSAGES_BATCH_ID = "send_mass_messages_batch"
@@ -96,16 +97,16 @@ def mass_messages_job(job_name, run_args, use_logging=True):
         mark_message_success_in_sql(cur, run_args["p"])
 
 
-
+    
 def create_mass_message_jobs(
-    numbers: List[str],
+    participants: List[str],
     message: str,
     name: str,
     batch_id: str,
     *,
     start: datetime | None = None,
     min_diff: timedelta = timedelta(minutes=1, seconds=30),
-) -> List["Job"]:
+) -> Dict[ParticipantItem, "Job" ]:
     """
     Create Job objects for sending mass messages.
     Only the job_id and run_args vary per number; everything else is shared.
@@ -114,19 +115,24 @@ def create_mass_message_jobs(
     # Default start: 30 seconds from now in configured timezone.
     if start is None:
         start = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=30)
-
-    run_times = compute_spread_times(start, min_diff=min_diff, runs=len(numbers))
+        
+    run_times = compute_spread_times(start, min_diff=min_diff, runs=len(participants))
 
     # --- 1) Prepare per-number metadata pieces (job_id + run_args) ---
-    per_number_specs = []
-    for p in numbers:
-        job_id = f"send_message_to_{p}_{name}"
-        run_args = {"message": message, "p": p}
-        per_number_specs.append((job_id, run_args))
+        
+    participant_job_specs = {
+        p: (
+            f"send_message_to_{p.phone_number}_{name}",
+            {"message": message, "p": p.phone_number}
+        )
+        for p in participants
+    }
+        
 
     # --- 2) Build Job objects using a list comprehension ---
-    jobs = [
-        Job(
+    jobs = {
+        
+        participant : Job(
             metadata=JobMetadata(
                 id=job_id,
                 description="",
@@ -142,8 +148,9 @@ def create_mass_message_jobs(
                 misfire_grace_time=1,
             ),
         )
-        for (job_id, run_args), run_time in zip(per_number_specs, run_times)
-    ]
+        for (participant, (job_id, run_args)), run_time in zip(participant_job_specs.items(), run_times)
+
+    }
 
     return jobs
 
@@ -166,47 +173,6 @@ def schedule_jobs(
         create_job(cur, scheduler, job)
         
         
-        
-
-
-
-
-
-
-
-
-
-def papapair(
-    cur, participants, batch_id: str, job_list: list["Job"]
-):
-    """
-    Inserts participants into mass_messages table with the corresponding job_info_id.
-    Assumes participants and job_list are in the same order.
-
-    Args:
-        cur: DB cursor
-        participants: list of participant objects with 'id' and 'phone_number'
-        batch_id: the batch ID for this insert
-        job_list: list of Job objects corresponding to participants
-    """
-    insert_sql = text("""
-        INSERT INTO mass_messages (
-            batch_id, recipient_id, recipient_phone_number, job_info_id
-        ) VALUES (
-            :batch_id, :recipient_id, :recipient_phone_number, :job_info_id
-        )
-    """)
-
-    for participant, job in zip(participants, job_list):
-        cur.execute(
-            insert_sql,
-            {
-                "batch_id": batch_id,
-                "recipient_id": participant.id,
-                "recipient_phone_number": participant.phone_number,
-                "job_info_id": job.metadata.id,
-            }
-        )        
 
 def send_mass_messages_core(sched, cur, req: SendMassMessagesRequestModel):
     # Generate batch ID
@@ -215,22 +181,20 @@ def send_mass_messages_core(sched, cur, req: SendMassMessagesRequestModel):
     # Create batch in DB
     create_job_batch(batch_id, cur)
 
-    # Extract phone numbers
-    phone_numbers = [p.phone_number for p in req.participants]
-
     # Create jobs
-    job_list = create_mass_message_jobs(
-        phone_numbers,
+    job_dict = create_mass_message_jobs(
+        # Extract phone numbers
+        req.participants,
         req.message,
         req.name,
         batch_id=batch_id
     )
     
     # Schedule the jobs
-    schedule_jobs(sched, cur, job_list)
+    schedule_jobs(sched, cur, job_dict.values())
 
     # Insert participants with job references
-    papapair(cur, req.participants, batch_id, job_list)
+    insert_to_mass_messages_sql(cur, batch_id, job_dict)
 
     
 
