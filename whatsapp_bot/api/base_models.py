@@ -83,6 +83,9 @@ class ParticipantItem(BaseModel):
     id: str
     phone_number: str
 
+    model_config = {
+        "frozen": True  # makes it hashable
+    }
 
 class SendMassMessagesRequestModel(BaseModel):
     name : str
