@@ -1,5 +1,5 @@
 # SQLAlchemy core imports
-from sqlalchemy import Column, Integer, String, Text, Boolean, JSON, ARRAY, ForeignKey, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, Boolean, JSON, ARRAY, ForeignKey, DateTime, func, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
@@ -32,12 +32,36 @@ class Participants(Base):
 class MassMessages(Base):
     __tablename__ = "mass_messages"
 
-    id =  Column(String(100), primary_key=True )
-    phone_number = Column(String(100), nullable=False
-                        #   , unique = True # DEUBG
-                          )
-    success = Column(Boolean, nullable=True, default=False)   
-    fail_reason = Column(JSON, nullable=True)
+    # Foreign key to JobBatch
+    batch_id = Column(
+        String(100),
+        ForeignKey("job_batch.name", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    recipient_id = Column(String(100), nullable=False)
+    recipient_phone_number = Column(
+        String(100),
+        nullable=False,
+    )
+    
+
+    # Foreign key to JobInformation.id
+    job_info_id = Column(
+        String(200),
+        ForeignKey("job_information.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    # success = Column(Boolean, nullable=True, default=False)
+    # fail_reason = Column(JSON, nullable=True)
+    
+    __table_args__ = (
+        PrimaryKeyConstraint("batch_id", "recipient_id"),
+    )
+
 
 class JobBatch(Base):
     __tablename__ = "job_batch"

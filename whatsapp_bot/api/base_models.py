@@ -14,20 +14,22 @@ class MavdakRequestModel(BaseModel):
     iluzei_reaionot_mador_mavdak: str
 
     # Each participant must be a valid Israeli phone number in +972 format
-    group_participants: f'List[{IsraeliPhoneNumber}]' = Field(
-        ...,  # required
-        min_items=1
-    )
+    group_participants: List[str]
+    # List[IsraeliPhoneNumber] = Field( #DEBUG
+    #     ...,  # required
+    #     min_items=1
+    # )
 
 
 # Request model
 class Raf0RequestModel(BaseModel):
     date: date  # user provides the date in YYYY-MM-DD format
     
-    group_participants: f'List[{IsraeliPhoneNumber}]' = Field(
-        ...,  # required
-        min_items=1
-    )
+    group_participants: List[str] 
+    # List[IsraeliPhoneNumber] = Field( #DEBUG
+    #     ...,  # required
+    #     min_items=1
+    # )
     
 class BaseGroupRequestModel(BaseModel):
     """
@@ -39,10 +41,11 @@ class BaseGroupRequestModel(BaseModel):
     date: date
     deadline: datetime
 
-    group_participants: f"List[{IsraeliPhoneNumber}]" = Field(
-        ...,
-        min_items=1,
-    )
+    group_participants: List[str]
+    #     f"List[{IsraeliPhoneNumber}]" = Field( #DEUBG
+    #     ...,
+    #     min_items=1,
+    # )
     
 class HakhanaRequestModel(BaseGroupRequestModel):
     """
@@ -61,17 +64,19 @@ class VeadatKevaRequestModel(BaseGroupRequestModel):
 
 class ChangeParticipantsRequestModel(BaseModel):
     gid: str  # any string for now
-    participants: f'List[{IsraeliPhoneNumber}]' = Field(
-        ...,        # required
-        min_items=1  # at least one participant
-    )
+    participants: List[str] 
+    # List[IsraeliPhoneNumber] = Field( #DEBUG
+    #     ...,        # required
+    #     min_items=1  # at least one participant
+    # )
     
 
 class GetParticipantsRequestModel(BaseModel):
     gid: str
-    participants_to_exclude: f'List[{IsraeliPhoneNumber}]' = Field(
-        ...,        # required
-    )
+    participants_to_exclude : List[str] 
+    # participants_to_exclude: List[IsraeliPhoneNumber] = Field( #DEBUG
+    #     ...,        # required
+    # )
     
 
 class ParticipantItem(BaseModel):
@@ -80,5 +85,6 @@ class ParticipantItem(BaseModel):
 
 
 class SendMassMessagesRequestModel(BaseModel):
+    name : str
     message: str
     participants: List[ParticipantItem]
