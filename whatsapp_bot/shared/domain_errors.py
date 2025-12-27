@@ -38,7 +38,7 @@ class JSONParseError(DomainError):
         super().__init__(message, request=request, response=response)
 
 
-class WhatsappNotConnected(DomainError):
+class WhatsappNotConnectedError(DomainError):
     """Raised when WhatsApp is not connected via Evolution API."""
     def __init__(self, message: str = "WhatsApp is not connected via Evolution API", request: any = None, response: any = None):
         super().__init__(message, request=request, response=response)

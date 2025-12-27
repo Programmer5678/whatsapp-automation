@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl, Field
-from typing import List
+from typing import List, Literal
 from datetime import date, datetime
 
 # ---------------- Reusable type ----------------
@@ -91,3 +91,18 @@ class SendMassMessagesRequestModel(BaseModel):
     name : str
     message: str
     participants: List[ParticipantItem]
+
+
+class ConnectionStateResponse(BaseModel):
+    status: Literal[
+        "connected",
+        "not_connected",
+        "evolution_connection_error"
+    ]
+    
+class ConnectionStateResponse(BaseModel):
+    status : str  # connected, not_connected, evolution_connection_error
+    
+class ConnectRequestModel(BaseModel):
+    api_key : str
+    number : str

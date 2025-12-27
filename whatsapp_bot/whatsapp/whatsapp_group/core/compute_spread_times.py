@@ -10,7 +10,7 @@ from whatsapp.core.core import BUSINESS_HOURS_DEFAULT
 
 
 # Oct 1, 2025 00:00, timezone-aware
-OCT1 = datetime(2025, 10, 1, 0, 0, tzinfo=ZoneInfo(TIMEZONE))
+OCT1 = datetime(2025, 10, 1, 0, 0, tzinfo=TIMEZONE)
 
 
 
@@ -59,7 +59,7 @@ def business_seconds_since_oct1(dt: datetime, business_hours: list = BUSINESS_HO
             prev_date.month,
             prev_date.day,
             23, 59, 59,
-            tzinfo=ZoneInfo(TIMEZONE)
+            tzinfo=TIMEZONE
         )
 
     return total_seconds
@@ -102,7 +102,7 @@ def convert_business_seconds_since_oct1_to_date(business_seconds: int, business_
                 start_time.hour,
                 start_time.minute,
                 start_time.second, 
-                tzinfo=ZoneInfo(TIMEZONE)
+                tzinfo=TIMEZONE
             ) + timedelta(seconds=remaining_seconds)
             
             log(f"Date: {current.date()}, Consuming remaining seconds: {remaining_seconds}, Result: {result.isoformat()}")
@@ -220,8 +220,8 @@ def compute_spread_times(
 
 
 def test_compute_spread_times1():
-    start = datetime(2025, 10, 3, 11, 30, tzinfo=ZoneInfo(TIMEZONE))
-    deadline = datetime(2025, 10, 5, 9, 30, tzinfo=ZoneInfo(TIMEZONE))
+    start = datetime(2025, 10, 3, 11, 30, tzinfo=TIMEZONE)
+    deadline = datetime(2025, 10, 5, 9, 30, tzinfo=TIMEZONE)
     runs = 3
 
     run_times = compute_spread_times(start, deadline=deadline, runs=runs)
@@ -229,13 +229,13 @@ def test_compute_spread_times1():
     # print(run_times)
 
     assert run_times == [
-        datetime(2025, 10, 3, 11, 30, tzinfo=ZoneInfo(TIMEZONE)),
-        datetime(2025, 10, 3, 12, 30, tzinfo=ZoneInfo(TIMEZONE)),
-        datetime(2025, 10, 5, 8, 30, tzinfo=ZoneInfo(TIMEZONE))
+        datetime(2025, 10, 3, 11, 30, tzinfo=TIMEZONE),
+        datetime(2025, 10, 3, 12, 30, tzinfo=TIMEZONE),
+        datetime(2025, 10, 5, 8, 30, tzinfo=TIMEZONE)
     ]
     
 def test_compute_spread_times2():
-    start = datetime(2025, 10, 7, 19, 30, tzinfo=ZoneInfo(TIMEZONE))
+    start = datetime(2025, 10, 7, 19, 30, tzinfo=TIMEZONE)
     min_diff = timedelta(hours=4)
     runs = 2
 
@@ -244,14 +244,14 @@ def test_compute_spread_times2():
     # print(run_times)
 
     assert run_times == [
-        datetime(2025, 10, 7, 19, 30, tzinfo=ZoneInfo(TIMEZONE)),
-        datetime(2025, 10, 8, 11, 30, tzinfo=ZoneInfo(TIMEZONE))
+        datetime(2025, 10, 7, 19, 30, tzinfo=TIMEZONE),
+        datetime(2025, 10, 8, 11, 30, tzinfo=TIMEZONE)
     ]
     
 def test_compute_spread_times3():
-    start = datetime(2025, 10, 7, 19, 30, tzinfo=ZoneInfo(TIMEZONE))
+    start = datetime(2025, 10, 7, 19, 30, tzinfo=TIMEZONE)
     min_diff = timedelta(hours=4)
-    deadline = datetime(2025, 10, 8, 8, 0, tzinfo=ZoneInfo(TIMEZONE))
+    deadline = datetime(2025, 10, 8, 8, 0, tzinfo=TIMEZONE)
     runs = 2
 
     try:

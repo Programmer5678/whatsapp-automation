@@ -27,8 +27,8 @@ def create_group(req: WhatsappGroupCreate, cur) -> str:
     Create group with Evolution API v2.
     Returns the group ID.
     """
-    first_participants_to_add = req.participants[:50]
-    rest_of_participants = req.participants[50:]
+    first_participants_to_add = req.participants[:10]
+    rest_of_participants = req.participants[10:]
     
     # rest_of_participants = req.participants # DEBUG
 
@@ -78,7 +78,7 @@ def schedule_add_participants_in_batches(
             "participants": participants
         },
     )
-    schedule = JobSchedule(run_time=datetime.now(ZoneInfo(TIMEZONE)))
+    schedule = JobSchedule(run_time=datetime.now(TIMEZONE))
     job = Job(metadata=metadata, action=action, schedule=schedule)
     
     job = Job(metadata=metadata, action=action, schedule=schedule)
@@ -97,7 +97,7 @@ def validate_deadline(deadline: datetime, min_minutes_ahead: int = 5,
     Raises:
         ValueError: If the deadline is too close, in the past, or outside business hours.
     """
-    tz = ZoneInfo(TIMEZONE)
+    tz = TIMEZONE
     now = datetime.now(tz)
     min_delta = timedelta(minutes=min_minutes_ahead)
 

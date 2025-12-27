@@ -1,31 +1,70 @@
-from shared.domain_errors import WhatsappNotConnected
-from whatsapp.core.evo_request import evo_request
+from shared.domain_errors import ConnectionDomainError, WhatsappNotConnectedError
+from whatsapp.core.evo_request import evo_request_with_retries   
 
-def is_whatsapp_connected() -> bool:
-    """
-    Check if WhatsApp is connected via Evolution API.
-    """
-    
-    # Replace 'whatsapp/status' with the actual endpoint method for checking WhatsApp
-    response_json = evo_request(method="instance/connectionState", get=True).json()
-        
-    instance_info = response_json.get("instance", {})
-    state = instance_info.get("state", "").lower()
-        
-    if state == "open":
-        return True
-    elif state == "close":
-        return False
-    else:
-        raise Exception(f"Unexpected connection state: {state}")     
-    
-def validate_whatsapp_connection() -> None:
-    
-    """
-    Validate that WhatsApp is connected. Raise an error if not.
-    """
-    
-    if not is_whatsapp_connected():
-        raise WhatsappNotConnected("WhatsApp is not connected via Evolution API.")
-        
-    
+
+def connection_state_service():
+    try:
+        resp = evo_request_with_retries(
+            "instance/connectionState",
+            method="GET"
+        )
+    except ConnectionDomainError:
+        return "evolution_connection_error"
+
+    content_type = resp.headers.get("Content-Type", "")
+    if "application/json" in content_type:
+        try:
+            data = resp.json()
+            if (
+                isinstance(data, dict)
+                and data.get("instance", {}).get("state") == "open"
+            ):
+                return "connected"
+        except ValueError:
+            pass
+
+    return "not_connected"
+
+def validate_whatsapp_connection():
+    status = connection_state_service()
+    if status != "connected":
+        return WhatsappNotConnectedError(f"WhatsApp not connected. Current status: {status}")
+
+
+def connect_service(
+    number: str,
+    api_key: str,
+):
+    resp_delete = evo_request_with_retries(
+        "instance/delete",
+        payload=None,
+        params=None,
+        method="DELETE",
+    )
+
+    resp_create = evo_request_with_retries(
+        "instance/create",
+        payload={
+            "instanceName": "my_instance",
+            "integration": "WHATSAPP-BAILEYS",
+            "token": api_key,
+            "number": number,
+        },
+        no_suffix=True,
+    )
+
+    resp_connect = evo_request_with_retries(
+        "instance/connect",
+        payload={"number": number},
+        params=None,
+        method="GET",
+    )
+
+    connect_json = resp_connect.json()
+
+    return {
+        "qr_code": connect_json.get("base64"),
+        "delete_response": resp_delete.json(),
+        "create_response": resp_create.json(),
+        "connect_response": connect_json,
+    }
