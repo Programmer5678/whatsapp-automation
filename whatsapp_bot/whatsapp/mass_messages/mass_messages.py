@@ -114,7 +114,7 @@ def create_mass_message_jobs(
 
     # Default start: 30 seconds from now in configured timezone.
     if start is None:
-        start = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=30)
+        start = datetime.now(tz=TIMEZONE) + timedelta(seconds=30)
         
     run_times = compute_spread_times(start, min_diff=min_diff, runs=len(participants))
 
@@ -176,7 +176,7 @@ def schedule_jobs(
 
 def send_mass_messages_core(sched, cur, req: SendMassMessagesRequestModel):
     # Generate batch ID
-    batch_id = f"{SEND_MASS_MESSAGES_BATCH_ID}/{req.name}/{datetime.now(tz=ZoneInfo(TIMEZONE)).strftime('%Y%m%d_%H%M%S')}" 
+    batch_id = f"{SEND_MASS_MESSAGES_BATCH_ID}/{req.name}/{datetime.now(tz=TIMEZONE).strftime('%Y%m%d_%H%M%S')}" 
 
     # Create batch in DB
     create_job_batch(batch_id, cur)

@@ -6,6 +6,7 @@ from routes.job import job_router
 from routes.test_routes import test_router
 from routes.group_participants import participants_router
 from routes.send_mass_messages import messages_router
+from routes.connection import connection_router
 
 
 from api.setup.setup import setup
@@ -14,7 +15,7 @@ from api.setup.setup import setup
 app = FastAPI()
 
 # Register routers
-for router in [group_creates_router, job_router, test_router, participants_router, messages_router ]:
+for router in [group_creates_router, job_router, test_router, participants_router, messages_router, connection_router ]:
     app.include_router(router)
 
 

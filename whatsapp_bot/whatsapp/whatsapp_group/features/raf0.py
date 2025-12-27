@@ -13,7 +13,7 @@ def calculate_deadline(req_date: date) -> datetime:
     """
     day_before = req_date - timedelta(days=1)
     deadline_dt = datetime.combine(day_before, time(hour=20, minute=0, second=0))
-    deadline_dt = deadline_dt.replace(tzinfo=ZoneInfo(TIMEZONE))
+    deadline_dt = deadline_dt.replace(tzinfo=TIMEZONE)
     return deadline_dt
 
 

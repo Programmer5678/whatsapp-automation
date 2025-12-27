@@ -34,8 +34,8 @@ def schedule_deadline_jobs(cur, req: WhatsappGroupCreate, group_id: str, runs: i
     Schedule `runs` jobs evenly between start (now + 5 min) and the deadline.
     """
 
-    start = datetime.now(ZoneInfo(TIMEZONE)) + timedelta(minutes=minutes_before_start)
-    deadline = req.deadline.astimezone(ZoneInfo(TIMEZONE))
+    start = datetime.now(TIMEZONE) + timedelta(minutes=minutes_before_start)
+    deadline = req.deadline.astimezone(TIMEZONE)
 
 
 

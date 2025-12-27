@@ -55,30 +55,22 @@ def request_and_print(method, url, headers=None, params=None, data=None, json=No
     return resp
 
 
-def evo_request(method: str, payload: dict = None, get: bool = False, params: dict = None) -> Any:
+def evo_request(path: str, payload: dict = None, params: dict = None, method: str = "POST", no_suffix: bool = False) -> Any:
     
     """
     Generalized request to Evolution API.
     """
     
     # print("\n\n")
-    
-    url = f"{BASE_URL}/{method}/{INSTANCE}"
+
+    url = f"{BASE_URL}/{path}/{INSTANCE}" if not no_suffix else f"{BASE_URL}/{path}"
     headers = {"Content-Type": "application/json", "apikey": API_KEY}
 
     try:
-        resp = None
-        if get:
-            # resp = requests.get(url, headers=headers, params=params)
-            
-            resp = request_and_print( "GET", url, headers, params, json=payload ) #DEBUG
-        else:
-            # resp = requests.post(url, json=payload or {}, headers=headers)
-            resp = request_and_print( "POST", url, headers, params, json=payload) #DEBUG
-
-                        
+        
+        resp = request_and_print( method, url, headers, params, json=payload ) #DEBUG
         return resp
-    
+
 
     except requests.exceptions.ConnectionError as e:
         raise ConnectionDomainError from e
@@ -97,20 +89,20 @@ def evo_request(method: str, payload: dict = None, get: bool = False, params: di
 import warnings
 import time
 
-def evo_request_with_retries(method: str, payload: dict = None, get: bool = False, params: dict = None) -> any:
+def evo_request_with_retries(path: str, payload: dict = None, params: dict = None, method: str = "POST", no_suffix: bool = False) -> any:
     """
     Call evo_request with retry logic for connection errors.
     Wait times: 10 seconds, 5 minutes, 30 minutes, then raise the exception.
     """
-    wait_times = [10, 20, 60]  # seconds: 10s, 5min, 30min
+    wait_times = [10, 20]  # seconds: 10s, 5min, 30min
 
     for attempt, wait in enumerate(wait_times, start=1):
         try:
-            return evo_request(method, payload=payload, get=get, params=params)
+            return evo_request(path, payload=payload, params=params, method=method, no_suffix=no_suffix)
         except ConnectionDomainError as e:
             warnings.warn(f"[Attempt {attempt}] Connection failed: {e}. Retrying in {wait} seconds...")
             time.sleep(wait)
     
     # Last attempt: just call one more time, let it raise if fails
-    return evo_request(method, payload=payload, get=get, params=params)
+    return evo_request(path, payload=payload, params=params)
     

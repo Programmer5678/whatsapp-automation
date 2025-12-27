@@ -8,12 +8,12 @@ from zoneinfo import ZoneInfo
 
 from api.dependencies import get_cursor_dep
 from shared.timezone import TIMEZONE
-from whatsapp.core.whatsapp_connection import validate_whatsapp_connection, is_whatsapp_connected
 from api.dependencies import get_scheduler
 from job_and_listener.job.core.create.create_job import create_job
 from job_and_listener.job.models.job_model import JobMetadata, JobAction, JobSchedule, Job
 from shared.models.error_helloworld_job import ErrorHelloWorldJobFunc
 from shared.models.helloworld_job import HelloWorldJobFunc
+
 
 test_router = APIRouter()
 
@@ -35,7 +35,7 @@ def schedule_error_job(
     scheduler = Depends(get_scheduler)
 ):
     job_id = "error_job_1"
-    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)
+    run_date = datetime.now(tz=TIMEZONE) + timedelta(seconds=20)
 
     metadata = JobMetadata(
         id=job_id,
@@ -50,25 +50,13 @@ def schedule_error_job(
     return {"status": "scheduled", "job_id": job_id, "run_date": run_date}
 
 
-
-
-@test_router.get("/validate_whatsapp_connection")
-def validate_whatsapp_connection_route():
-    validate_whatsapp_connection()
-    return {"message": "validated"}
-
-
-@test_router.get("/is_connected")
-def is_connected_route():
-    return {"connected": is_whatsapp_connected()}
-
 @test_router.post("/schedule_helloworld")
 def schedule_helloworld(
                             cur = Depends(get_cursor_dep),
                             scheduler = Depends(get_scheduler)
                         ):
     job_id = "helloworld_job_1"
-    run_date = datetime.now(tz=ZoneInfo(TIMEZONE)) + timedelta(seconds=20)
+    run_date = datetime.now(tz=TIMEZONE) + timedelta(seconds=20)
     description = "Write Hello world to helloworld.txt"
     batch_id = "example_batch_name"  # assume 1 for example
     

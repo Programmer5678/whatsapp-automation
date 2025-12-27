@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from job_and_listener.job.models.base_job_func_model import BaseJobFunc
 from whatsapp.core.core import _phone_number
-from whatsapp.whatsapp_group.core import get_group_invite_link
+from whatsapp.whatsapp_group.core.get_group_invite_link import get_group_invite_link
 from whatsapp.whatsapp_group.features.participants.core import get_group_member_ids
 
 
