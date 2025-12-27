@@ -12,8 +12,8 @@ def get_group_member_ids(group_id: str) -> List[str]:
         
     resp_json = evo_request_with_retries(
         "group/participants",
-        get=True,
-        params={"groupJid": group_id}
+        params={"groupJid": group_id},
+        method="GET",
     ).json()
 
     participants = resp_json.get("participants", []) or []
@@ -37,8 +37,8 @@ def get_group_participants(gid: str, excluded: list[str]) -> dict:
     and filters out excluded participants.
     """
     resp = evo_request_with_retries(
-        method="/group/participants",
-        get=True,
+        "/group/participants",
+        method="GET",
         params={"groupJid": gid}
     )
     participants_json = resp.json().get("participants", [])
