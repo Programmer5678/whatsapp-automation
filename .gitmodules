@@ -1,3 +1,6 @@
 [submodule "evolution-api"]
 	path = evolution-api
 	url = https://github.com/Programmer5678/evolution-api.git
+[submodule "whatsapp_bot_frontend"]
+	path = whatsapp_bot_frontend
+	url = https://github.com/Programmer5678/whatsapp_bot_frontend.git

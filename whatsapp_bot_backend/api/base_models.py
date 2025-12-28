@@ -94,14 +94,13 @@ class SendMassMessagesRequestModel(BaseModel):
 
 
 class ConnectionStateResponse(BaseModel):
-    status: Literal[
+    status: Literal[ # connected, not_connected, evolution_connection_error
         "connected",
         "not_connected",
         "evolution_connection_error"
     ]
     
-class ConnectionStateResponse(BaseModel):
-    status : str  # connected, not_connected, evolution_connection_error
+
     
 class ConnectRequestModel(BaseModel):
     api_key : str
