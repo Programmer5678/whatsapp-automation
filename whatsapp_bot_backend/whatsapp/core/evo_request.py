@@ -95,14 +95,17 @@ def evo_request_with_retries(path: str, payload: dict = None, params: dict = Non
     Wait times: 10 seconds, 5 minutes, 30 minutes, then raise the exception.
     """
     wait_times = [10, 20]  # seconds: 10s, 5min, 30min
+    
+    def req():
+        return evo_request(path, payload=payload, params=params, method=method, no_suffix=no_suffix)
 
     for attempt, wait in enumerate(wait_times, start=1):
         try:
-            return evo_request(path, payload=payload, params=params, method=method, no_suffix=no_suffix)
+            return req()
         except ConnectionDomainError as e:
             warnings.warn(f"[Attempt {attempt}] Connection failed: {e}. Retrying in {wait} seconds...")
             time.sleep(wait)
     
     # Last attempt: just call one more time, let it raise if fails
-    return evo_request(path, payload=payload, params=params)
+    return req()
     
