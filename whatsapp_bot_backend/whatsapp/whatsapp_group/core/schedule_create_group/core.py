@@ -27,8 +27,8 @@ def create_group(req: WhatsappGroupCreate, cur) -> str:
     Create group with Evolution API v2.
     Returns the group ID.
     """
-    first_participants_to_add = req.participants[:10]
-    rest_of_participants = req.participants[10:]
+    first_participants_to_add = req.participants[:40]
+    rest_of_participants = req.participants[40:]
     
     # rest_of_participants = req.participants # DEBUG
 
