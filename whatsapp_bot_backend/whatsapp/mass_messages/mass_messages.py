@@ -30,17 +30,17 @@ from whatsapp.mass_messages.db import insert_to_mass_messages_sql
 SEND_MASS_MESSAGES_BATCH_ID = "send_mass_messages_batch"
    
 # --- Define callbacks ---
-def mark_message_success_in_sql(cur, phone_number: str):
+def mark_message_success_in_sql(cur, recipient_id: str):
     """
     Marks a message as successfully sent in the mass_messages table.
     """
     cur.execute(
-        text("UPDATE mass_messages SET success = TRUE WHERE phone_number = :phone_number"),
-        {"phone_number": phone_number}
+        text("UPDATE mass_messages SET success = TRUE WHERE recipient_id = :recipient_id"),
+        {"recipient_id": recipient_id}
     )
 
 
-def mark_message_failure_in_sql(cur, phone_number: str, reason: str):
+def mark_message_failure_in_sql(cur, recipient_id: str, reason: str):
     """
     Marks a message as failed in the mass_messages table and records the failure reason.
     """
@@ -48,9 +48,9 @@ def mark_message_failure_in_sql(cur, phone_number: str, reason: str):
         text("""
             UPDATE mass_messages
             SET success = FALSE, fail_reason = :reason
-            WHERE phone_number = :phone_number
+            WHERE recipient_id = :recipient_id
         """),
-        {"phone_number": phone_number, "reason": reason}
+        {"recipient_id": recipient_id, "reason": reason}
     )
    
    
@@ -64,49 +64,46 @@ def mass_messages_job(job_name, run_args, use_logging=True):
         job_name: APScheduler job name (not used here, but passed by scheduler)
         run_args: dict containing:
             - "message": the text to send
-            - "p": recipient phone number
+            - "recipient_phone_number": recipient phone number
+            - "recipient_id" : recipient id 
+            
     """
     with get_cursor() as cur:
         
         logging.debug if use_logging else print
         
-        # try: #DEBUG
-        # Send the message via the API
-        resp = evo_request_with_retries(
-            "message/sendText",
-            {
-                "number": _phone_number(run_args["p"]),
-                "text": run_args["message"],
-                "delay": 50000,  # some delay required by API
-            },
-        )
+        try:
+            # Send the message via the API
+            resp = evo_request_with_retries(
+                "message/sendText",
+                {
+                    "number": _phone_number(run_args["recipient_phone_number"]),
+                    "text": run_args["message"],
+                    "delay": 50000,  # some delay required by API
+                },
+            )
+            # If the response is not OK, raise an exception
+            if not resp.ok: 
+                raise Exception(f"HTTP {resp.status_code}: {resp.text}")
 
-        # If the response is not OK, raise an exception
-        if not resp.ok: 
-            raise Exception(f"HTTP {resp.status_code}: {resp.text}")
-
-        # except Exception as e:  # Record failure in SQL
-        #     # Capture full traceback and store it in DB
+            mark_message_success_in_sql(cur, run_args["recipient_id"])
             
-        #     # mark_message_failure_in_sql(cur, run_args["p"], "failed")
-        #     # log(exception_to_json(e))
-        #     mark_message_failure_in_sql(cur, run_args["p"], exception_to_json(e))
-        #     raise  # Re-raise so the scheduler knows this job failed
+        except Exception as e:
+            
+            mark_message_failure_in_sql(cur, run_args["recipient_id"], str(e))
 
-        # If message was sent successfully, mark it as success in DB
-        mark_message_success_in_sql(cur, run_args["p"])
-
+            
 
     
-def create_mass_message_jobs(
-    participants: List[str],
+def get_mass_message_jobs(
+    participants: List[ParticipantItem],
     message: str,
     name: str,
     batch_id: str,
     *,
     start: datetime | None = None,
     min_diff: timedelta = timedelta(minutes=1, seconds=30),
-) -> Dict[ParticipantItem, "Job" ]:
+) :
     """
     Create Job objects for sending mass messages.
     Only the job_id and run_args vary per number; everything else is shared.
@@ -117,60 +114,37 @@ def create_mass_message_jobs(
         start = datetime.now(tz=TIMEZONE) + timedelta(seconds=30)
         
     run_times = compute_spread_times(start, min_diff=min_diff, runs=len(participants))
-
-    # --- 1) Prepare per-number metadata pieces (job_id + run_args) ---
-        
-    participant_job_specs = {
-        p: (
-            f"send_message_to_{p.phone_number}_{name}",
-            {"message": message, "p": p.phone_number}
-        )
-        for p in participants
-    }
-        
-
-    # --- 2) Build Job objects using a list comprehension ---
-    jobs = {
-        
-        participant : Job(
+    
+            
+    job_specifics = [ { "job_id" : f"send_message_to_{p.phone_number}_{name}", "recipient_phone_number" : p.phone_number,
+                       "recipient_id" : p.id, "run_time" : run_time }
+                     for p, run_time in zip(participants, run_times) ] 
+                   
+    jobs =  [
+             Job(
             metadata=JobMetadata(
-                id=job_id,
+                id=specific["job_id"],
                 description="",
                 batch_id=batch_id,
             ),
             action=JobAction(
                 func=mass_messages_job,
-                run_args=run_args,
+                run_args={"message" : message, "recipient_phone_number" : specific["recipient_phone_number"],
+                          "recipient_id" : specific["recipient_id"]  }
             ),
             schedule=JobSchedule(
-                run_time=run_time,
+                run_time=specific["run_time"],
                 coalesce=True,
                 misfire_grace_time=1,
-            ),
-        )
-        for (participant, (job_id, run_args)), run_time in zip(participant_job_specs.items(), run_times)
-
-    }
+            )
+             ) for specific in job_specifics
+             ]
 
     return jobs
 
 
 
-def schedule_jobs(
-    scheduler: Any,
-    cur: Any,
-    jobs: List["Job"],
-) -> None:
-    """
-    Persist and schedule a list of Job objects with APScheduler / DB.
 
-    Args:
-        scheduler: APScheduler instance
-        cur: DB cursor/connection
-        jobs: list of Job objects created by create_mass_message_jobs
-    """
-    for job in jobs:
-        create_job(cur, scheduler, job)
         
         
 
@@ -180,21 +154,29 @@ def send_mass_messages_core(sched, cur, req: SendMassMessagesRequestModel):
 
     # Create batch in DB
     create_job_batch(batch_id, cur)
+    
+    
 
     # Create jobs
-    job_dict = create_mass_message_jobs(
-        # Extract phone numbers
+    jobs = get_mass_message_jobs(
         req.participants,
         req.message,
         req.name,
         batch_id=batch_id
     )
     
-    # Schedule the jobs
-    schedule_jobs(sched, cur, job_dict.values())
+    #Create jobs 
+    for job in jobs:
+        create_job(cur, sched, job)
+        
+    mass_messages_tb_participants = [ {"participantItem" : participant, 
+                    "job_id" : job.metadata.id} for participant, job in zip(req.participants, jobs) ]
+    
 
     # Insert participants with job references
-    insert_to_mass_messages_sql(cur, batch_id, job_dict)
+    insert_to_mass_messages_sql(cur, batch_id, mass_messages_tb_participants)
 
     
+
+
 
