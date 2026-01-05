@@ -78,3 +78,6 @@ _IGNORE*
 Thumbs.db
 *pycache*
 __pycache__
+
+
+whatsapp_bot_frontend*
