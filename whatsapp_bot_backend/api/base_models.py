@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl, Field
-from typing import List, Literal
+from typing import Any, List, Literal
 from datetime import date, datetime
 
 # ---------------- Reusable type ----------------
@@ -101,6 +101,11 @@ class ConnectionStateResponse(BaseModel):
     ]
     
 
+class QRCodeResponseModel(BaseModel):
+    qr_code: str
+    delete_response : Any
+    create_response: Any
+    connect_response: Any
     
 class ConnectRequestModel(BaseModel):
     api_key : str

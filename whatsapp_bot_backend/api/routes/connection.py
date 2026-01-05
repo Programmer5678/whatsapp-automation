@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.base_models import ConnectRequestModel, ConnectionStateResponse
+from api.base_models import ConnectRequestModel, ConnectionStateResponse, QRCodeResponseModel
 from whatsapp.core.whatsapp_connection import connect_service, connection_state_service
 
 connection_router = APIRouter( prefix="/connection",)
@@ -14,7 +14,7 @@ def connection_state_route():
     }
 
 
-@connection_router.post("/connect")
+@connection_router.post("/connect", response_model=QRCodeResponseModel)
 def connect_route(payload: ConnectRequestModel):
     return connect_service(
         number=payload.number,
