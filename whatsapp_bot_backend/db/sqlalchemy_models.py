@@ -55,8 +55,8 @@ class MassMessages(Base):
         index=True,
     )
 
-    # success = Column(Boolean, nullable=True, default=False)
-    # fail_reason = Column(JSON, nullable=True)
+    success = Column(Boolean, nullable=True, default=False)
+    fail_reason = Column(JSON, nullable=True)
     
     __table_args__ = (
         PrimaryKeyConstraint("batch_id", "recipient_id"),

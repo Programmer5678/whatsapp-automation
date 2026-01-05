@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Any
 from sqlalchemy import text
 
 from api.base_models import ParticipantItem
@@ -6,18 +6,9 @@ from job_and_listener.job.models.job_model import Job
 
 
 def insert_to_mass_messages_sql(
-    cur, batch_id: str, job_dict: Dict[ParticipantItem, "Job"]
+    cur, batch_id: str, mass_messages_tb_participants : List[Dict[str, Any]]
 ):
-    """
-    Inserts participants into mass_messages table with the corresponding job_info_id.
-    Assumes participants and job_list are in the same order.
 
-    Args:
-        cur: DB cursor
-        participants: list of participant objects with 'id' and 'phone_number'
-        batch_id: the batch ID for this insert
-        job_list: list of Job objects corresponding to participants
-    """
     insert_sql = text("""
         INSERT INTO mass_messages (
             batch_id, recipient_id, recipient_phone_number, job_info_id
@@ -26,14 +17,18 @@ def insert_to_mass_messages_sql(
         )
     """)
 
-    for participant, job in job_dict.items():
+    for el in mass_messages_tb_participants:
+        
+        participantItem = el["participantItem"]
+        job_id = el["job_id"]
+        
         cur.execute(
             insert_sql,
             {
                 "batch_id": batch_id,
-                "recipient_id": participant.id,
-                "recipient_phone_number": participant.phone_number,
-                "job_info_id": job.metadata.id,
+                "recipient_id": participantItem.id,
+                "recipient_phone_number": participantItem.phone_number,
+                "job_info_id": job_id,
             }
         )
 
