@@ -74,7 +74,7 @@ def format_number_title(num: str) -> str:
     return f"+972 5{num[4]}-{num[5:8]}-{num[8:]}"
 
 
-def select_numbers_group(cur, group_name, page, search_bar, numbers):
+def select_numbers_group(cur, group_name, page, search_bar):
     """
     Iterates through numbers and selects each entry.
 
@@ -90,39 +90,44 @@ def select_numbers_group(cur, group_name, page, search_bar, numbers):
       - The same title may appear twice (main + footer),
         so we allow TWO title matches
     """
-    for num in numbers:
+     
+    num_tries = 3   
+    for _ in range(num_tries):
+        numbers = get_remaining_numbers(cur, group_name)
+        print(numbers)
         
-        num_format = format_number_title(num)
-        
-        search_bar.fill(num)
-        input("stop")
+        for num in numbers:
+            
+            num_format = format_number_title(num)
+            
+            search_bar.fill(num)
 
-        try:
-            selector = (
-                "div[role='listitem'] span[data-icon='default-contact-refreshed'], "
-                "div[role='listitem'] img[src*='whatsapp.net'], "
-                f"span[title='{num_format}']"
-            )
-
-            page.wait_for_function(
-                f"""
-                () => (
-                    document.querySelectorAll("{selector}").length === 1 ||
-                    document.querySelectorAll("span[title='{num_format}']").length === 2
+            try:
+                selector = (
+                    "div[role='listitem'] span[data-icon='default-contact-refreshed'], "
+                    "div[role='listitem'] img[src*='whatsapp.net'], "
+                    f"span[title='{num_format}']"
                 )
-                """,
-                timeout=6000
-            )
 
-            entry = page.locator(selector).first
-            entry.click(timeout=6000)
-            
-            set_number(cur, group_name, num, True)
+                page.wait_for_function(
+                    f"""
+                    () => (
+                        document.querySelectorAll("{selector}").length === 1 ||
+                        document.querySelectorAll("span[title='{num_format}']").length === 2
+                    )
+                    """,
+                    timeout=6000
+                )
 
-        except Exception as e:
-            
-            set_number(cur, group_name, num, False)
-            print(f"{num} failed with {str(e)}")
+                entry = page.locator(selector).first
+                entry.click(timeout=6000)
+                
+                set_number(cur, group_name, num, True)
+
+            except Exception as e:
+                
+                set_number(cur, group_name, num, False)
+                print(f"{num} failed with {str(e)}")
 
 
 def fill_group_name(page, group_name: str):
@@ -160,12 +165,13 @@ def confirm_group_creation(page):
     
     
 
-def get_numbers(cur, group_name):
+def get_remaining_numbers(cur, group_name):
     result = cur.execute(
         text(
             "SELECT participant "
             "FROM manual_create_group "
-            "WHERE group_name = :group_name"
+            "WHERE group_name = :group_name "
+            "AND (success = FALSE OR success IS NULL) "
         ),
         {"group_name": group_name}
     )
@@ -196,12 +202,11 @@ def main():
             
             url = "https://web.whatsapp.com"  # site to open
             group_name = "hola"
-            numbers = get_numbers(cur, group_name)
             
             page.goto(url)
             
             search_bar = start_create_group(page)
-            select_numbers_group(cur, group_name, page, search_bar, numbers)
+            select_numbers_group(cur, group_name, page, search_bar)
 
             # Language-specific selector (temporary solution as noted)
             page.locator("div[aria-label='הבא']").click()
