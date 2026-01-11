@@ -1,11 +1,9 @@
-from numbers import my_numbers
 from playwright.sync_api import sync_playwright, expect
 from contextlib import contextmanager
 
-
-url = "https://web.whatsapp.com"  # site to open
-profile_path = str(" /home/ruz/snap/firefox/common/.mozilla/firefox/playwright")
-
+from sqlalchemy import text
+from db.get_cursor import get_cursor 
+from .my_numbers import numbers
 
 # For every contact in contacts fill the search_bar with the contact and select 
 # the element with title that starts with contact. 
@@ -21,7 +19,7 @@ def select_contacts_group(search_bar, contacts, page):
 
 
 @contextmanager
-def playwright_page_context(profile_path: str, url: str):
+def playwright_page_context():
     """
     Full Playwright lifecycle wrapper.
     - Launches persistent Firefox context
@@ -29,16 +27,23 @@ def playwright_page_context(profile_path: str, url: str):
     - Yields the page
     - Waits for user input before closing
     """
+    
+    profile_path = str(" /home/ruz/snap/firefox/common/.mozilla/firefox/playwright")
+
+    
     with sync_playwright() as p:
         browser = p.firefox.launch_persistent_context(
             user_data_dir=profile_path,
             headless=False
         )
         page = browser.new_page()
-        page.goto(url)
 
         try:
             yield page
+            
+        except Exception as e:
+            print(str(e))
+            
         finally:
             print("Press Enter to close.")
             input()
@@ -69,7 +74,7 @@ def format_number_title(num: str) -> str:
     return f"+972 5{num[4]}-{num[5:8]}-{num[8:]}"
 
 
-def select_numbers_group(page, search_bar, numbers):
+def select_numbers_group(cur, group_name, page, search_bar, numbers):
     """
     Iterates through numbers and selects each entry.
 
@@ -86,8 +91,11 @@ def select_numbers_group(page, search_bar, numbers):
         so we allow TWO title matches
     """
     for num in numbers:
-        search_bar.fill(num)
+        
         num_format = format_number_title(num)
+        
+        search_bar.fill(num)
+        input("stop")
 
         try:
             selector = (
@@ -108,8 +116,12 @@ def select_numbers_group(page, search_bar, numbers):
 
             entry = page.locator(selector).first
             entry.click(timeout=6000)
+            
+            set_number(cur, group_name, num, True)
 
         except Exception as e:
+            
+            set_number(cur, group_name, num, False)
             print(f"{num} failed with {str(e)}")
 
 
@@ -144,19 +156,59 @@ def confirm_group_creation(page):
     """
     page.locator('span[data-icon="checkmark-medium"]').click()
 
-
-
-
-def main():
-  with playwright_page_context(profile_path, url) as page:
-    search_bar = start_create_group(page)
-    select_numbers_group(page, search_bar, numbers)
-
-    # Language-specific selector (temporary solution as noted)
-    page.locator("div[aria-label='הבא']").click()
-
-    fill_group_name(page, group_name="hola")
-    confirm_group_creation(page)
     
+    
+    
+
+def get_numbers(cur, group_name):
+    result = cur.execute(
+        text(
+            "SELECT participant "
+            "FROM manual_create_group "
+            "WHERE group_name = :group_name"
+        ),
+        {"group_name": group_name}
+    )
+    return [row[0] for row in result.fetchall()]
+
+
+def set_number(cur, group_name, number, result: bool):
+    cur.execute(
+        text(
+            "UPDATE manual_create_group "
+            "SET success = :success "
+            "WHERE group_name = :group_name "
+            "AND participant = :participant"
+        ),
+        {
+            "success": result,
+            "group_name": group_name,
+            "participant": number
+        }
+    )
+    
+    
+def main():
+    
+    with get_cursor() as cur:
+        with playwright_page_context() as page:
+                    
+            
+            url = "https://web.whatsapp.com"  # site to open
+            group_name = "hola"
+            numbers = get_numbers(cur, group_name)
+            
+            page.goto(url)
+            
+            search_bar = start_create_group(page)
+            select_numbers_group(cur, group_name, page, search_bar, numbers)
+
+            # Language-specific selector (temporary solution as noted)
+            page.locator("div[aria-label='הבא']").click()
+
+            fill_group_name(page, group_name=group_name)
+            confirm_group_creation(page)
+            
 if __name__ == "__main__":
-  main()
+    main()
+    
