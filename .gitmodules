@@ -4,3 +4,4 @@
 [submodule "whatsapp_bot_frontend"]
 	path = whatsapp_bot_frontend
 	url = https://github.com/Programmer5678/whatsapp_bot_frontend.git
+	branch = manual

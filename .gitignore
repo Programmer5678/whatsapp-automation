@@ -1,3 +1,4 @@
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -80,4 +81,4 @@ Thumbs.db
 __pycache__
 
 
-whatsapp_bot_frontend*
+
